@@ -1,0 +1,3241 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>BareForm 90 V2 — Zero-Equipment &amp; Minimal-Kit Workout App</title>
+
+  <!-- PWA Manifest & Theme Metadata -->
+  <link rel="manifest" href="./manifest.json" />
+  <meta name="theme-color" content="#0A0E17" />
+  <meta name="description" content="Zero-equipment and minimal-kit 90-day workout tracker, schedule planner, and hydration log." />
+
+  <!-- Apple iOS / iPadOS Safari PWA Support -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="BareForm" />
+  <link rel="apple-touch-icon" sizes="180x180" href="./icons/icon-180.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png" />
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+          },
+          colors: {
+            obsidian: '#0A0E17',
+            surface: '#121826',
+            surfaceLight: '#1A2234',
+            borderDark: '#232E43',
+            accent: '#22C55E',
+            flame: '#F97316',
+            aqua: '#38BDF8',
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      background-color: #0A0E17;
+      color: #F8FAFC;
+      font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+      overflow-x: hidden;
+      margin: 0;
+      padding: 0;
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+    }
+    /* iPhone / iPad Standalone Notch & Home Indicator Safe Areas */
+    header.sticky {
+      padding-top: env(safe-area-inset-top);
+    }
+    nav[aria-label="Mobile navigation"] {
+      padding-bottom: calc(0.375rem + env(safe-area-inset-bottom));
+    }
+    body {
+      padding-bottom: calc(6rem + env(safe-area-inset-bottom));
+    }
+    @media (min-width: 768px) {
+      body {
+        padding-bottom: calc(2.5rem + env(safe-area-inset-bottom));
+      }
+    }
+    .glass-card {
+      background: linear-gradient(180deg, rgba(20, 27, 42, 0.96) 0%, rgba(14, 20, 33, 0.99) 100%);
+      border: 1px solid rgba(51, 65, 85, 0.55);
+    }
+    .nav-btn-active {
+      color: #22C55E;
+      background-color: rgba(34, 197, 94, 0.12);
+    }
+    .mobile-nav-active {
+      color: #22C55E;
+    }
+    .fade-in { animation: fadeIn 0.18s ease-out; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scroll::-webkit-scrollbar-track { background: #0A0E17; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: #26334D; border-radius: 999px; }
+  </style>
+</head>
+<body class="min-h-screen bg-obsidian text-slate-100">
+
+  <!-- Storage Unavailable Banner (Hidden unless localStorage is blocked) -->
+  <div id="storage-warning" class="hidden bg-amber-500/15 border-b border-amber-500/30 text-amber-200 text-xs px-4 py-2 text-center">
+    Browser storage is currently unavailable. Your session works normally, and you can export a JSON backup from Settings to save your progress.
+  </div>
+
+  <!-- Top Header -->
+  <header class="sticky top-0 z-40 bg-obsidian/92 backdrop-blur-md border-b border-slate-800/80">
+    <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20 shrink-0">
+          <i data-lucide="flame" class="w-5 h-5 text-slate-950 stroke-[2.5]"></i>
+        </div>
+        <div class="leading-tight truncate">
+          <div class="font-extrabold text-base tracking-tight text-white flex items-center gap-1.5">
+            <span>BareForm</span>
+            <span class="text-[11px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">90 V2</span>
+          </div>
+          <p class="text-[11px] text-slate-400 truncate hidden lg:block">Free Zero-Equipment &amp; Minimal-Kit Training</p>
+        </div>
+      </div>
+
+      <!-- Desktop Navigation -->
+      <nav class="hidden md:flex items-center gap-1 bg-surface/90 p-1 rounded-xl border border-slate-800" aria-label="Primary navigation">
+        <button data-nav="today" class="nav-tab px-3 py-1.5 rounded-lg text-sm font-medium text-slate-300 hover:text-white transition flex items-center gap-1.5">
+          <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Today
+        </button>
+        <button data-nav="workout" class="nav-tab px-3 py-1.5 rounded-lg text-sm font-medium text-slate-300 hover:text-white transition flex items-center gap-1.5">
+          <i data-lucide="dumbbell" class="w-4 h-4"></i> Workout
+        </button>
+        <button data-nav="schedule" class="nav-tab px-3 py-1.5 rounded-lg text-sm font-medium text-slate-300 hover:text-white transition flex items-center gap-1.5">
+          <i data-lucide="calendar-days" class="w-4 h-4"></i> Schedule
+        </button>
+        <button data-nav="nutrition" class="nav-tab px-3 py-1.5 rounded-lg text-sm font-medium text-slate-300 hover:text-white transition flex items-center gap-1.5">
+          <i data-lucide="droplets" class="w-4 h-4"></i> Fuel
+        </button>
+        <button data-nav="progress" class="nav-tab px-3 py-1.5 rounded-lg text-sm font-medium text-slate-300 hover:text-white transition flex items-center gap-1.5">
+          <i data-lucide="trending-up" class="w-4 h-4"></i> Progress
+        </button>
+      </nav>
+
+      <!-- Right Action Buttons -->
+      <div class="flex items-center gap-2 shrink-0">
+        <div class="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-orange-500/10 border border-orange-500/25 text-orange-400 text-xs font-bold" title="Current Calendar Streak">
+          <i data-lucide="flame" class="w-3.5 h-3.5"></i>
+          <span id="header-streak-count">0</span>d
+        </div>
+        <button id="open-settings-btn" class="p-2 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/80 transition" title="Backup, Restore &amp; Settings" aria-label="Settings and Backup">
+          <i data-lucide="settings" class="w-4 h-4"></i>
+        </button>
+        <button id="open-builder-btn" class="px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs sm:text-sm transition flex items-center gap-1.5 shadow-md shadow-emerald-500/15">
+          <i data-lucide="sliders-horizontal" class="w-4 h-4"></i>
+          <span>Plan Builder</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main id="app-root" class="max-w-6xl mx-auto px-4 pt-5 sm:pt-6"></main>
+
+  <!-- Mobile Bottom Navigation -->
+  <nav class="md:hidden fixed bottom-0 inset-x-0 z-40 bg-obsidian/95 backdrop-blur-md border-t border-slate-800 px-2 pt-1.5" aria-label="Mobile navigation">
+    <div class="grid grid-cols-5 gap-1 max-w-md mx-auto">
+      <button data-nav="today" class="mobile-nav-tab flex flex-col items-center justify-center py-1.5 rounded-lg text-slate-400 text-[11px] font-medium gap-1">
+        <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+        <span>Today</span>
+      </button>
+      <button data-nav="workout" class="mobile-nav-tab flex flex-col items-center justify-center py-1.5 rounded-lg text-slate-400 text-[11px] font-medium gap-1">
+        <i data-lucide="dumbbell" class="w-5 h-5"></i>
+        <span>Workout</span>
+      </button>
+      <button data-nav="schedule" class="mobile-nav-tab flex flex-col items-center justify-center py-1.5 rounded-lg text-slate-400 text-[11px] font-medium gap-1">
+        <i data-lucide="calendar-days" class="w-5 h-5"></i>
+        <span>Schedule</span>
+      </button>
+      <button data-nav="nutrition" class="mobile-nav-tab flex flex-col items-center justify-center py-1.5 rounded-lg text-slate-400 text-[11px] font-medium gap-1">
+        <i data-lucide="droplets" class="w-5 h-5"></i>
+        <span>Fuel</span>
+      </button>
+      <button data-nav="progress" class="mobile-nav-tab flex flex-col items-center justify-center py-1.5 rounded-lg text-slate-400 text-[11px] font-medium gap-1">
+        <i data-lucide="trending-up" class="w-5 h-5"></i>
+        <span>Progress</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed bottom-20 md:bottom-6 right-4 z-50 pointer-events-none opacity-0 translate-y-2 transition-all duration-200 max-w-sm">
+    <div id="toast-box" class="bg-slate-900 border border-emerald-500/40 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2.5 text-sm font-medium">
+      <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+      <span id="toast-message">Saved!</span>
+    </div>
+  </div>
+
+  <!-- Generic Dynamic Modal Container -->
+  <div id="modal-backdrop" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/75 backdrop-blur-sm p-4 overflow-y-auto">
+    <div id="modal-content" class="glass-card rounded-2xl max-w-lg w-full p-6 shadow-2xl my-auto max-h-[90vh] overflow-y-auto custom-scroll"></div>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      // ============================================================
+      // 1. SECURITY & DATE UTILITIES (Local Calendar Dates, Safe Escaping)
+      // ============================================================
+      function escapeHtml(value) {
+        return String(value == null ? '' : value)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function getLocalDateKey(dateObj) {
+        const d = dateObj instanceof Date ? dateObj : new Date();
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+      }
+
+      function parseLocalDateKey(dateKey) {
+        if (typeof dateKey !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return null;
+        const [y, m, d] = dateKey.split('-').map(Number);
+        const dt = new Date(y, m - 1, d);
+        if (dt.getFullYear() !== y || dt.getMonth() !== m - 1 || dt.getDate() !== d) return null;
+        return dt;
+      }
+
+      function addDaysToDateKey(dateKey, deltaDays) {
+        const dt = parseLocalDateKey(dateKey) || new Date();
+        dt.setDate(dt.getDate() + deltaDays);
+        return getLocalDateKey(dt);
+      }
+
+      function getWeekdayIndexFromDateKey(dateKey) {
+        const dt = parseLocalDateKey(dateKey) || new Date();
+        const jsDay = dt.getDay(); // 0=Sun..6=Sat
+        return jsDay === 0 ? 6 : jsDay - 1; // 0=Mon..6=Sun
+      }
+
+      function formatFriendlyDate(dateKey) {
+        const today = getLocalDateKey();
+        const yesterday = addDaysToDateKey(today, -1);
+        if (dateKey === today) return 'Today';
+        if (dateKey === yesterday) return 'Yesterday';
+        const dt = parseLocalDateKey(dateKey);
+        if (!dt) return dateKey;
+        return dt.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+      }
+
+      function clampNumber(val, min, max, fallback) {
+        const n = Number(val);
+        if (!Number.isFinite(n)) return fallback;
+        return Math.max(min, Math.min(max, n));
+      }
+
+      // ============================================================
+      // 2. COMPREHENSIVE EXERCISE LIBRARY (Safe, Detailed, Pattern-Tagged)
+      // ============================================================
+      const EXERCISES = [
+        // PUSH (Chest, Shoulders, Triceps)
+        {
+          id: 'pushup_incline', name: 'Incline Push-Ups', pattern: 'push', muscles: 'Chest, Front Shoulders, Triceps',
+          equip: 'bodyweight', difficulty: 1, repMin: 10, repMax: 15, timed: false, restSec: 60,
+          instructions: 'Place hands on a verified sturdy, non-slip elevated surface (such as a low wall or heavy bench). Brace your core, lower chest with elbows at ~45°, and press back cleanly.',
+          mistakes: 'Letting hips sag, flaring elbows to 90°, or using an unstable chair that can slide.',
+          regression: 'Wall Push-Ups', progression: 'Standard Push-Ups',
+          safety: 'Only use a solid, immovable elevated surface; switch to Knee Push-Ups on the floor if unsure.'
+        },
+        {
+          id: 'pushup_knee', name: 'Knee Push-Ups', pattern: 'push', muscles: 'Chest, Triceps, Core',
+          equip: 'bodyweight', difficulty: 1, repMin: 10, repMax: 15, timed: false, restSec: 60,
+          instructions: 'Keep a straight line from shoulders to knees on a mat or folded towel. Lower chest smoothly toward the floor and press up with control.',
+          mistakes: 'Pushing hips back into tabletop position or rushing the lowering phase.',
+          regression: 'Wall Push-Ups', progression: 'Standard Push-Ups',
+          safety: 'Pad knees with a mat or folded towel on hard floors.'
+        },
+        {
+          id: 'pushup_std', name: 'Standard Push-Ups', pattern: 'push', muscles: 'Chest, Front Delts, Triceps, Core',
+          equip: 'bodyweight', difficulty: 2, repMin: 8, repMax: 14, timed: false, restSec: 60,
+          instructions: 'Hands slightly wider than shoulders, glutes and abs braced. Lower chest to an inch above the floor with elbows at ~45°, then press to full lockout.',
+          mistakes: 'Dropping the head forward, sagging lower back, or half-reps.',
+          regression: 'Incline or Knee Push-Ups', progression: 'Decline Push-Ups',
+          safety: 'Keep wrists neutral; use push-up handles or fists on a mat if wrists feel sensitive.'
+        },
+        {
+          id: 'pushup_decline', name: 'Decline Push-Ups', pattern: 'push', muscles: 'Upper Chest, Shoulders, Triceps',
+          equip: 'bodyweight', difficulty: 2, repMin: 8, repMax: 12, timed: false, restSec: 75,
+          instructions: 'Elevate feet on a verified stable step or low sturdy platform. Brace core firmly, lower chest toward floor, and press powerfully.',
+          mistakes: 'Arching the lower back under load or using a rolling/unstable object.',
+          regression: 'Standard Push-Ups', progression: 'Pike Push-Ups',
+          safety: 'Ensure the foot platform cannot tip or slide.'
+        },
+        {
+          id: 'pushup_diamond', name: 'Close-Grip / Diamond Push-Ups', pattern: 'push', muscles: 'Triceps, Inner Chest',
+          equip: 'bodyweight', difficulty: 2, repMin: 8, repMax: 12, timed: false, restSec: 60,
+          instructions: 'Place hands closer than shoulder width beneath your sternum. Keep elbows tracking close to your ribs as you lower and press.',
+          mistakes: 'Flaring elbows out or placing hands too high near the face.',
+          regression: 'Close-Grip Knee Push-Ups', progression: 'Archer Push-Ups',
+          safety: 'Widen hand spacing slightly if you feel wrist or elbow strain.'
+        },
+        {
+          id: 'pushup_pike', name: 'Pike Push-Ups', pattern: 'push', muscles: 'Shoulders, Upper Chest, Triceps',
+          equip: 'bodyweight', difficulty: 2, repMin: 6, repMax: 12, timed: false, restSec: 75,
+          instructions: 'Start in an inverted V with hips high. Lower the crown of your head slightly forward of your hands, forming a tripod, then press straight back up.',
+          mistakes: 'Lowering head directly between hands instead of slightly forward.',
+          regression: 'Incline Pike Push-Ups', progression: 'Elevated Pike Push-Ups',
+          safety: 'Control the descent to protect the neck and shoulders.'
+        },
+        {
+          id: 'pushup_archer', name: 'Archer Push-Ups', pattern: 'push', muscles: 'Chest, Shoulders, Triceps, Core',
+          equip: 'bodyweight', difficulty: 3, repMin: 6, repMax: 10, timed: false, restSec: 75,
+          instructions: 'Set hands wide with fingers angled slightly out. Shift weight onto one bent arm while keeping the opposite arm straight, alternating sides.',
+          mistakes: 'Twisting hips or bending both arms evenly.',
+          regression: 'Standard Push-Ups', progression: 'Pseudo Planche Push-Ups',
+          safety: 'Warm up shoulders and wrists thoroughly before unilateral push work.'
+        },
+        {
+          id: 'floor_tricep_ext', name: 'Bodyweight Floor Tricep Extensions', pattern: 'push', muscles: 'Triceps, Core',
+          equip: 'bodyweight', difficulty: 2, repMin: 8, repMax: 14, timed: false, restSec: 60,
+          instructions: 'Start in a forearm plank (or knees down for easier). Press palms into the floor to extend both elbows simultaneously into a high plank, then lower slowly.',
+          mistakes: 'Swaying hips side to side or letting elbows flare wide.',
+          regression: 'Kneeling Floor Tricep Extensions', progression: 'Diamond Push-Ups',
+          safety: 'Safer on shoulders than improvised chair dips; keep core tight.'
+        },
+        {
+          id: 'db_floor_press', name: 'Dumbbell Floor Press', pattern: 'push', muscles: 'Chest, Triceps, Front Delts',
+          equip: 'dumbbells', difficulty: 1, repMin: 8, repMax: 12, timed: false, restSec: 60,
+          instructions: 'Lie on your back with knees bent. Press dumbbells straight over chest, lower slowly until upper arms lightly touch the floor, pause 1 second, and press.',
+          mistakes: 'Bouncing elbows off the floor or flaring upper arms straight out.',
+          regression: 'Lighter Dumbbells / Push-Ups', progression: 'Single-Arm Dumbbell Floor Press',
+          safety: 'Roll dumbbells onto thighs to get into and out of position safely.'
+        },
+        {
+          id: 'db_ohp', name: 'Standing Dumbbell Overhead Press', pattern: 'push', muscles: 'Shoulders, Triceps, Core',
+          equip: 'dumbbells', difficulty: 2, repMin: 8, repMax: 12, timed: false, restSec: 75,
+          instructions: 'Hold dumbbells at shoulder height with palms slightly angled in. Brace glutes and ribs, press directly overhead without leaning back, and lower with control.',
+          mistakes: 'Hyperextending the lower back or shrugging shoulders into ears.',
+          regression: 'Seated Dumbbell Press', progression: 'Dumbbell Arnold Press',
+          safety: 'Stop immediately if you feel sharp shoulder pinching; reduce load.'
+        },
+        {
+          id: 'db_lat_raise', name: 'Dumbbell Lateral Raises', pattern: 'push', muscles: 'Side Deltoids',
+          equip: 'dumbbells', difficulty: 1, repMin: 12, repMax: 16, timed: false, restSec: 45,
+          instructions: 'Stand tall with a slight bend in elbows. Raise dumbbells out to the sides until parallel with shoulders, pause briefly, and lower in 2–3 seconds.',
+          mistakes: 'Swinging torso for momentum or lifting dumbbells above shoulder height.',
+          regression: 'Lighter Dumbbells', progression: 'Pause Lateral Raises',
+          safety: 'Use light weight; this is an isolation movement.'
+        },
+        {
+          id: 'db_skullcrusher', name: 'Dumbbell Floor Skullcrushers', pattern: 'push', muscles: 'Triceps',
+          equip: 'dumbbells', difficulty: 2, repMin: 10, repMax: 14, timed: false, restSec: 60,
+          instructions: 'Lie on your back with dumbbells held vertically above shoulders. Keep upper arms still, bend elbows to lower weights beside ears, then extend smoothly.',
+          mistakes: 'Swinging upper arms backward or using overly heavy dumbbells.',
+          regression: 'Bodyweight Floor Tricep Extensions', progression: 'Tempo 3-Second Skullcrushers',
+          safety: 'Keep strict control near the head.'
+        },
+
+        // PULL (Back, Lats, Rear Delts, Biceps) — ZERO UNSAFE DOOR/TABLE IMPROVISATION!
+        {
+          id: 'bw_superman_pull', name: 'Prone Superman Lat Pulls', pattern: 'pull', muscles: 'Lats, Upper Back, Lower Back',
+          equip: 'bodyweight', difficulty: 1, repMin: 10, repMax: 15, timed: false, restSec: 45,
+          instructions: 'Lie face down on a mat with arms extended overhead. Lift chest slightly, drive elbows down toward your ribs while squeezing shoulder blades for 2 seconds, then extend.',
+          mistakes: 'Cranking the neck upward or rushing without squeezing the back.',
+          regression: 'Alternating Single-Arm Prone Pulls', progression: 'Prone Lat Pulls with 3s Hold',
+          safety: 'Keep neck neutral looking down at the mat.'
+        },
+        {
+          id: 'bw_ytw', name: 'Prone Y-T-W Raises', pattern: 'pull', muscles: 'Rear Delts, Mid/Lower Traps, Posture',
+          equip: 'bodyweight', difficulty: 1, repMin: 8, repMax: 12, timed: false, restSec: 45,
+          instructions: 'Lie face down with forehead resting lightly on a rolled towel. Lift straight arms into a Y, then a T, then a W with thumbs pointing up (1 cycle = 1 rep).',
+          mistakes: 'Shrugging shoulders toward ears or lifting with lower back momentum.',
+          regression: 'Standing Bent-Over Y-T-W', progression: 'Slow 2-Second Pause Y-T-W',
+          safety: 'Zero joint strain; ideal for shoulder health and posture.'
+        },
+        {
+          id: 'bw_rev_snow_angel', name: 'Reverse Snow Angels', pattern: 'pull', muscles: 'Upper Back, Rear Delts, Rhomboids',
+          equip: 'bodyweight', difficulty: 1, repMin: 10, repMax: 14, timed: false, restSec: 45,
+          instructions: 'Lie face down with arms at your sides, palms down. Lift hands 2 inches off the floor and sweep them in a wide arc overhead while rotating palms inward, then return.',
+          mistakes: 'Letting hands touch the floor or lifting feet aggressively.',
+          regression: 'Shorter Range Reverse Angels', progression: 'Weighted Towel/Water-Bottle Angels',
+          safety: 'Keep movement slow and controlled.'
+        },
+        {
+          id: 'bw_floor_pull_slide', name: 'Floor Towel Lat Slides', pattern: 'pull', muscles: 'Lats, Core, Upper Back',
+          equip: 'bodyweight', difficulty: 2, repMin: 8, repMax: 12, timed: false, restSec: 60,
+          instructions: 'Lie face down on a smooth floor with hands planted ahead and torso/hips resting on a folded towel. Pull your chest forward through your arms using your lats, then push back.',
+          mistakes: 'Using legs to push instead of pulling through the arms.',
+          regression: 'Prone Superman Lat Pulls', progression: 'Single-Arm Assisted Floor Slides',
+          safety: 'Requires only a clean smooth floor and towel — no unstable furniture.'
+        },
+        {
+          id: 'bw_iso_towel_row', name: 'Isometric Towel Bent-Over Row', pattern: 'pull', muscles: 'Mid Back, Lats, Biceps',
+          equip: 'bodyweight', difficulty: 2, repMin: 8, repMax: 12, timed: false, restSec: 60,
+          instructions: 'Loop a sturdy bath towel under one foot while hinged at 45° with a flat back. Pull hard with both arms against your own leg resistance for 5 seconds per rep.',
+          mistakes: 'Rounding the lower back or shrugging shoulders.',
+          regression: 'Lighter Tension Isometric Pulls', progression: 'Longer 8-Second Max Tension Pulls',
+          safety: 'Keep spine neutral and hinge from the hips.'
+        },
+        {
+          id: 'bar_scap_pull', name: 'Scapular Pull-Ups', pattern: 'pull', muscles: 'Lower Traps, Lats, Grip',
+          equip: 'pullup', difficulty: 1, repMin: 8, repMax: 14, timed: false, restSec: 60,
+          instructions: 'Hang from a secure pull-up bar with straight arms. Without bending elbows, pull shoulder blades down and back to lift your chest slightly, pause 1s, and lower.',
+          mistakes: 'Bending elbows or swinging the legs.',
+          regression: 'Dead Hang (20–30s)', progression: 'Slow Negative Pull-Ups',
+          safety: 'Ensure your pull-up bar is securely mounted before bearing full weight.'
+        },
+        {
+          id: 'bar_neg_pullup', name: 'Slow Negative Pull-Ups', pattern: 'pull', muscles: 'Lats, Biceps, Upper Back',
+          equip: 'pullup', difficulty: 2, repMin: 5, repMax: 8, timed: false, restSec: 75,
+          instructions: 'Step up from a sturdy box or jump gently to chin-over-bar position. Lower yourself under strict control for a full 4–5 seconds down to a dead hang.',
+          mistakes: 'Dropping rapidly through the bottom half or shrugging shoulders.',
+          regression: 'Scapular Pull-Ups', progression: 'Strict Chin-Ups',
+          safety: 'Verify bar stability and clear landing space underneath.'
+        },
+        {
+          id: 'bar_chinup', name: 'Chin-Ups', pattern: 'pull', muscles: 'Biceps, Lats, Upper Back',
+          equip: 'pullup', difficulty: 2, repMin: 5, repMax: 10, timed: false, restSec: 90,
+          instructions: 'Grip bar underhand at shoulder width. Pull chest toward the bar until chin clears cleanly, then lower with control to full arm extension.',
+          mistakes: 'Kipping/swinging legs or stopping halfway down.',
+          regression: 'Slow Negative Pull-Ups', progression: 'Strict Overhand Pull-Ups',
+          safety: 'Avoid sudden jerking at the bottom hang.'
+        },
+        {
+          id: 'bar_pullup', name: 'Overhand Pull-Ups', pattern: 'pull', muscles: 'Lats, Mid Back, Forearms',
+          equip: 'pullup', difficulty: 3, repMin: 5, repMax: 10, timed: false, restSec: 90,
+          instructions: 'Grip bar slightly wider than shoulders, palms away. Drive elbows down toward hips, clear chin over bar, and lower smoothly to a full hang.',
+          mistakes: 'Half-reps, crossing legs behind and arching excessively.',
+          regression: 'Chin-Ups or Negative Pull-Ups', progression: 'Chest-to-Bar Pull-Ups',
+          safety: 'Verify pull-up bar security before every set.'
+        },
+        {
+          id: 'db_row', name: 'Dumbbell Bent-Over Rows', pattern: 'pull', muscles: 'Lats, Mid Back, Rear Delts, Biceps',
+          equip: 'dumbbells', difficulty: 1, repMin: 8, repMax: 12, timed: false, restSec: 60,
+          instructions: 'Hinge hips back ~45° with flat spine. Pull dumbbells toward your lower ribs while squeezing shoulder blades, pause 1 second, and lower slowly.',
+          mistakes: 'Rounding the lower back or jerking torso upright.',
+          regression: 'Lighter Dumbbell Rows', progression: 'Single-Arm Supported Dumbbell Row',
+          safety: 'Maintain neutral lower back throughout the set.'
+        },
+        {
+          id: 'db_rear_fly', name: 'Dumbbell Rear Delt Flyes', pattern: 'pull', muscles: 'Rear Deltoids, Upper Back',
+          equip: 'dumbbells', difficulty: 1, repMin: 12, repMax: 16, timed: false, restSec: 45,
+          instructions: 'Hinge forward with soft knees. Sweep light dumbbells out wide to shoulder level with slightly bent elbows, squeezing upper back.',
+          mistakes: 'Using too much weight and swinging the arms.',
+          regression: 'Prone Y-T-W Raises', progression: 'Pause Rear Delt Flyes',
+          safety: 'Keep lower back braced and neck neutral.'
+        },
+        {
+          id: 'db_curl', name: 'Dumbbell Bicep Curls', pattern: 'pull', muscles: 'Biceps, Forearms',
+          equip: 'dumbbells', difficulty: 1, repMin: 10, repMax: 14, timed: false, restSec: 45,
+          instructions: 'Stand tall with elbows pinned lightly to your sides. Curl dumbbells toward shoulders with palms up, squeeze at top, and lower for 2–3 seconds.',
+          mistakes: 'Swinging hips backward or letting elbows drift far forward.',
+          regression: 'Alternating Dumbbell Curls', progression: 'Dumbbell Hammer Curls',
+          safety: 'Use a weight you can control without leaning back.'
+        },
+        {
+          id: 'db_hammer', name: 'Dumbbell Hammer Curls', pattern: 'pull', muscles: 'Brachialis, Biceps, Forearms',
+          equip: 'dumbbells', difficulty: 1, repMin: 10, repMax: 14, timed: false, restSec: 45,
+          instructions: 'Hold dumbbells with palms facing each other. Curl smoothly toward shoulders keeping elbows tucked, then lower with full control.',
+          mistakes: 'Using torso momentum to swing the dumbbells up.',
+          regression: 'Alternating Hammer Curls', progression: 'Slow Tempo Hammer Curls',
+          safety: 'Keep wrists straight and neutral.'
+        },
+
+        // SQUAT / KNEE-DOMINANT (Quads, Glutes)
+        {
+          id: 'bw_squat', name: 'Bodyweight Squats', pattern: 'squat', muscles: 'Quads, Glutes, Core',
+          equip: 'bodyweight', difficulty: 1, repMin: 12, repMax: 20, timed: false, restSec: 60,
+          instructions: 'Feet shoulder-width apart, toes slightly out. Sit hips back and down until thighs are at least parallel, keeping heels flat and chest proud.',
+          mistakes: 'Knees caving inward or heels lifting off the floor.',
+          regression: 'Box/Chair Touch Squats', progression: 'Tempo Pause Squats',
+          safety: 'Keep knees tracking in line with your toes.'
+        },
+        {
+          id: 'bw_rev_lunge', name: 'Reverse Lunges', pattern: 'squat', muscles: 'Quads, Glutes, Balance',
+          equip: 'bodyweight', difficulty: 1, repMin: 10, repMax: 14, timed: false, restSec: 60,
+          instructions: 'Step one foot smoothly backward, lowering back knee gently toward the floor while front shin stays near vertical. Drive through front heel to stand.',
+          mistakes: 'Stepping too narrow (tightrope stance) or slamming back knee down.',
+          regression: 'Split Squat Hold', progression: 'Bulgarian Split Squats',
+          safety: 'Easier on knees than forward lunges; use a mat for comfort.'
+        },
+        {
+          id: 'bw_bulgarian', name: 'Bulgarian Split Squats', pattern: 'squat', muscles: 'Quads, Glutes, Stabilizers',
+          equip: 'bodyweight', difficulty: 2, repMin: 8, repMax: 12, timed: false, restSec: 75,
+          instructions: 'Rest top of back foot on a verified sturdy, low platform behind you. Lower straight down until front thigh is parallel, then drive through front foot.',
+          mistakes: 'Standing too close to the platform or arching lower back.',
+          regression: 'Static Split Squats (Floor)', progression: 'Dumbbell Split Squats / Pause Reps',
+          safety: 'Use a solid, non-slip surface; do Floor Split Squats if no sturdy surface is available.'
+        },
+        {
+          id: 'bw_shrimp_squat', name: 'Assisted Pistol / Shrimp Squats', pattern: 'squat', muscles: 'Quads, Glutes, Single-Leg Strength',
+          equip: 'bodyweight', difficulty: 3, repMin: 6, repMax: 10, timed: false, restSec: 75,
+          instructions: 'Balance on one leg, sit hips back and lower under control (lightly resting a hand on a solid wall for balance if needed), then drive up smoothly.',
+          mistakes: 'Collapsing knee inward or lifting heel off the floor.',
+          regression: 'Bulgarian Split Squats', progression: 'Unassisted Pistol Squats',
+          safety: 'Stop at pain-free depth; prioritize knee tracking over depth.'
+        },
+        {
+          id: 'db_goblet', name: 'Dumbbell Goblet Squats', pattern: 'squat', muscles: 'Quads, Glutes, Upper Back, Core',
+          equip: 'dumbbells', difficulty: 1, repMin: 10, repMax: 14, timed: false, restSec: 60,
+          instructions: 'Hold one dumbbell vertically against your chest with elbows tucked down. Squat deep with upright torso, pause briefly, and stand tall.',
+          mistakes: 'Rounding upper back or letting elbows flare wide.',
+          regression: 'Bodyweight Squats', progression: 'Pause Goblet Squats',
+          safety: 'Keep weight tight to your chest to protect the lower back.'
+        },
+        {
+          id: 'db_split_squat', name: 'Dumbbell Split Squats', pattern: 'squat', muscles: 'Quads, Glutes, Core',
+          equip: 'dumbbells', difficulty: 2, repMin: 8, repMax: 12, timed: false, restSec: 75,
+          instructions: 'Stand in a staggered lunge stance holding dumbbells at your sides. Lower back knee gently toward the floor and press evenly through front foot.',
+          mistakes: 'Leaning excessively forward or wobbling knee inward.',
+          regression: 'Bodyweight Reverse Lunges', progression: 'Dumbbell Bulgarian Split Squats',
+          safety: 'Use a mat under the back knee.'
+        },
+
+        // HINGE / POSTERIOR CHAIN (Glutes, Hamstrings, Calves)
+        {
+          id: 'bw_glute_bridge', name: 'Glute Bridges', pattern: 'hinge', muscles: 'Glutes, Hamstrings',
+          equip: 'bodyweight', difficulty: 1, repMin: 12, repMax: 18, timed: false, restSec: 45,
+          instructions: 'Lie on your back with knees bent and feet flat hip-width apart. Drive through heels to lift hips until torso and thighs align, squeezing glutes 2s at top.',
+          mistakes: 'Overarching the lower back instead of squeezing glutes.',
+          regression: 'Short-Hold Glute Bridges', progression: 'Single-Leg Glute Bridges',
+          safety: 'Keep ribs tucked down at the top.'
+        },
+        {
+          id: 'bw_sl_bridge', name: 'Single-Leg Glute Bridges', pattern: 'hinge', muscles: 'Glutes, Hamstrings, Core',
+          equip: 'bodyweight', difficulty: 2, repMin: 10, repMax: 14, timed: false, restSec: 60,
+          instructions: 'Extend one leg straight out while driving through the planted heel to lift hips evenly. Keep pelvis level and pause 1 second at top.',
+          mistakes: 'Letting the unsupported hip drop downward.',
+          regression: 'Two-Leg Glute Bridges', progression: 'Hamstring Bridge Walkouts',
+          safety: 'Avoid cramping by keeping planted foot comfortably close to glutes.'
+        },
+        {
+          id: 'bw_ham_walkout', name: 'Hamstring Bridge Walkouts', pattern: 'hinge', muscles: 'Hamstrings, Glutes',
+          equip: 'bodyweight', difficulty: 2, repMin: 6, repMax: 10, timed: false, restSec: 60,
+          instructions: 'Hold a glute bridge, then take small controlled steps walking your heels forward until legs are nearly straight, then walk back in (1 out-and-back = 1 rep).',
+          mistakes: 'Dropping hips to the floor while walking heels out.',
+          regression: 'Single-Leg Glute Bridges', progression: 'Slow Eccentric Towel Leg Curls',
+          safety: 'Start with shorter steps if hamstrings tighten quickly.'
+        },
+        {
+          id: 'bw_calf_raise', name: 'Single-Leg Calf Raises', pattern: 'hinge', muscles: 'Calves, Ankle Stability',
+          equip: 'bodyweight', difficulty: 1, repMin: 12, repMax: 18, timed: false, restSec: 45,
+          instructions: 'Stand near a wall for light balance. Rise high onto the ball of one foot, pause 1 second at the peak, and lower slowly for 2–3 seconds.',
+          mistakes: 'Bouncing rapidly at the bottom without full range.',
+          regression: 'Two-Leg Calf Raises', progression: 'Elevated Step Calf Raises',
+          safety: 'Keep ankle aligned straight, avoiding rolling outward.'
+        },
+        {
+          id: 'db_rdl', name: 'Dumbbell Romanian Deadlifts', pattern: 'hinge', muscles: 'Hamstrings, Glutes, Lower Back',
+          equip: 'dumbbells', difficulty: 2, repMin: 8, repMax: 12, timed: false, restSec: 75,
+          instructions: 'Stand tall holding dumbbells in front of thighs. With soft knees and flat back, push hips straight back until you feel a strong hamstring stretch, then drive hips forward.',
+          mistakes: 'Rounding the lower back or turning the hinge into a squat.',
+          regression: 'Bodyweight Hip Hinge Practice', progression: 'Single-Leg Dumbbell RDL',
+          safety: 'Keep dumbbells brushing close to legs; stop lowering before your back rounds.'
+        },
+
+        // CORE
+        {
+          id: 'core_deadbug', name: 'Dead Bugs', pattern: 'core', muscles: 'Deep Core, Lower Abs',
+          equip: 'bodyweight', difficulty: 1, repMin: 10, repMax: 16, timed: false, restSec: 45,
+          instructions: 'Lie on your back with knees bent 90° over hips and arms reaching up. Press lower back flat into the floor while slowly extending opposite arm and leg.',
+          mistakes: 'Letting lower back arch off the mat when leg extends.',
+          regression: 'Heel Taps (Arms Still)', progression: 'Hollow Body Hold',
+          safety: 'Excellent spine-friendly core stabilizer.'
+        },
+        {
+          id: 'core_plank', name: 'Forearm Plank Hold', pattern: 'core', muscles: 'Anterior Core, Shoulders, Glutes',
+          equip: 'bodyweight', difficulty: 1, repMin: 30, repMax: 60, timed: true, restSec: 45,
+          instructions: 'Elbows directly under shoulders, body in one straight line. Squeeze glutes, brace abs, and breathe steadily for the full duration.',
+          mistakes: 'Sagging hips or piking hips high into the air.',
+          regression: 'Knee Forearm Plank', progression: 'Hollow Body Hold',
+          safety: 'End the set if your lower back starts sagging.'
+        },
+        {
+          id: 'core_hollow', name: 'Hollow Body Hold', pattern: 'core', muscles: 'Full Anterior Core',
+          equip: 'bodyweight', difficulty: 2, repMin: 25, repMax: 45, timed: true, restSec: 60,
+          instructions: 'Lie on your back, glue lower back into the floor, lift shoulders and straight legs slightly off the mat with arms reaching overhead.',
+          mistakes: 'Leaving a gap under the lower back.',
+          regression: 'Tucked Hollow Hold (Knees Bent)', progression: 'Hollow Body Rocks',
+          safety: 'Bend knees slightly if lower back lifts off the floor.'
+        },
+        {
+          id: 'core_side_plank', name: 'Side Plank Hold', pattern: 'core', muscles: 'Obliques, Hip Stabilizers',
+          equip: 'bodyweight', difficulty: 1, repMin: 25, repMax: 45, timed: true, restSec: 45,
+          instructions: 'Stack elbow under shoulder and lift hips into a straight line from head to ankles. Hold evenly on each side.',
+          mistakes: 'Letting hips sink or rolling chest toward the floor.',
+          regression: 'Kneeling Side Plank', progression: 'Side Plank with Top Leg Lift',
+          safety: 'Keep shoulder packed down away from ear.'
+        },
+        {
+          id: 'bar_hanging_knee', name: 'Hanging Knee / Leg Raises', pattern: 'core', muscles: 'Lower Abs, Hip Flexors, Grip',
+          equip: 'pullup', difficulty: 2, repMin: 8, repMax: 14, timed: false, restSec: 60,
+          instructions: 'Hang cleanly from pull-up bar with shoulders slightly engaged. Curl knees (or straight legs) upward by tucking pelvis, then lower slowly without swinging.',
+          mistakes: 'Swinging momentum or only lifting knees halfway without pelvic curl.',
+          regression: 'Dead Bugs', progression: 'Strict Hanging Straight-Leg Raises',
+          safety: 'Verify bar stability before hanging.'
+        },
+        {
+          id: 'db_suitcase_march', name: 'Dumbbell Suitcase March', pattern: 'core', muscles: 'Obliques, Core Stability, Grip',
+          equip: 'dumbbells', difficulty: 1, repMin: 16, repMax: 24, timed: false, restSec: 45,
+          instructions: 'Hold one dumbbell at your side like a heavy suitcase. Stand completely upright without leaning and march knees up slowly, alternating arms each set.',
+          mistakes: 'Leaning toward or away from the weight.',
+          regression: 'Side Plank Hold', progression: 'Heavier Suitcase Carry/March',
+          safety: 'Keep torso tall and ribs stacked over pelvis.'
+        },
+
+        // CONDITIONING
+        {
+          id: 'cond_mtn_climb', name: 'Controlled Mountain Climbers', pattern: 'conditioning', muscles: 'Core, Shoulders, Cardio',
+          equip: 'bodyweight', difficulty: 1, repMin: 30, repMax: 45, timed: true, restSec: 45,
+          instructions: 'Start in a strong high plank. Drive knees briskly toward your chest one at a time while keeping hips low and shoulders over wrists.',
+          mistakes: 'Bouncing hips high or letting shoulders drift backward.',
+          regression: 'Slow Cross-Body Mountain Climbers', progression: 'Athletic Burpees',
+          safety: 'Keep wrists stacked directly under shoulders.'
+        },
+        {
+          id: 'cond_jump_squat', name: 'Soft-Landing Jump Squats', pattern: 'conditioning', muscles: 'Quads, Glutes, Explosive Power',
+          equip: 'bodyweight', difficulty: 2, repMin: 8, repMax: 12, timed: false, restSec: 60,
+          instructions: 'Dip into a quarter/half squat, explode upward cleanly, and land softly through mid-foot directly into a cushioned knees-bent absorption.',
+          mistakes: 'Landing stiff-legged or letting knees knock inward.',
+          regression: 'Fast Bodyweight Squats', progression: 'Tuck Jumps',
+          safety: 'Skip jumping and use Fast Bodyweight Squats if you have knee or ankle pain.'
+        },
+        {
+          id: 'cond_burpee', name: 'Step-Back or Athletic Burpees', pattern: 'conditioning', muscles: 'Full Body Conditioning',
+          equip: 'bodyweight', difficulty: 2, repMin: 8, repMax: 12, timed: false, restSec: 60,
+          instructions: 'Plant hands, step or hop into a crisp plank (optional push-up), step or hop feet forward, and stand or jump tall with arms overhead.',
+          mistakes: 'Collapsing hips into the floor during the plank phase.',
+          regression: 'No-Jump Step-Back Burpees', progression: 'Chest-to-Floor Burpees',
+          safety: 'Step back instead of jumping back to protect lower back if fatigued.'
+        }
+      ];
+
+      const EXERCISE_MAP = Object.fromEntries(EXERCISES.map(e => [e.id, e]));
+
+      const WARMUPS = {
+        push: ['Arm circles & shoulder rolls (45s)', 'Scapular wall/floor push-ups (10 reps)', 'Wrist mobility rocks (30s)', '2 easy warm-up sets of your first move'],
+        pull: ['Cat-cow thoracic mobility (45s)', 'Bandless shoulder dislocates / Y-T reaches (10 reps)', 'Scapular squeezes (12 reps)', 'Light warm-up set of first pull exercise'],
+        legs: ['Leg swings front-to-back & side-to-side (30s/leg)', 'Bodyweight hip hinges (10 reps)', 'Slow bodyweight squats (10 reps)', 'Ankle circles & glute bridges (10 reps)'],
+        upper: ['Arm circles & thoracic twists (45s)', 'Scapular push-ups & prone squeezes (10 reps)', 'Wrist warm-up (30s)', 'Easy warm-up set of first push & pull'],
+        lower: ['Hip circles & leg swings (45s)', 'Glute bridges (10 reps)', 'Slow bodyweight squats (10 reps)', 'Calf raises (12 reps)'],
+        full: ['Jumping jacks or brisk march (60s)', 'Arm circles & hip circles (45s)', 'Slow bodyweight squats (10 reps)', 'Easy push-up & back-squeeze activation (8 reps)'],
+        conditioning: ['Brisk march or light jog in place (60s)', 'Dynamic hip & shoulder mobility (60s)', '5 slow squats + 5 slow plank shoulder taps']
+      };
+
+      const COOLDOWN_STEPS = [
+        'Slow nasal breathing for 60s to bring heart rate down',
+        'Floor chest & shoulder stretch (30s each side)',
+        'Hip flexor & hamstring stretch (30s each side)',
+        'Child’s pose or gentle spinal twist (45s)'
+      ];
+
+      // ============================================================
+      // 3. STATE SCHEMA (V2), V1 MIGRATION, & SAFE PERSISTENCE
+      // ============================================================
+      const STORAGE_KEY_V2 = 'bareform90_state_v2';
+      const STORAGE_KEY_V1 = 'bareform90_state_v1';
+      const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      const DAY_FULL = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+      const DEFAULT_PROFILE = {
+        gender: 'male',
+        age: 22,
+        weight: 68,          // kg
+        weightUnit: 'kg',    // kg | lbs
+        height: 174,         // cm
+        experience: 'intermediate', // beginner | intermediate | advanced
+        goal: 'athletic',    // lose | athletic | muscle
+        equipment: 'bodyweight', // bodyweight | pullup | dumbbells | both
+        sessionsPerWeek: 4,  // 2..6
+        intensity: 'moderate', // low | moderate | high
+        duration: 45,        // 20 | 30 | 45 | 60
+        format: 'upper_lower', // full_body | upper_lower | ppl | hybrid
+        hotWeather: false,
+        planBuilt: false
+      };
+
+      function createFreshState() {
+        return {
+          version: 2,
+          activeTab: 'today',
+          selectedScheduleDay: getWeekdayIndexFromDateKey(getLocalDateKey()),
+          selectedFuelDate: getLocalDateKey(),
+          profile: { ...DEFAULT_PROFILE },
+          customSchedule: null, // array of 7 { dayIdx, focus } built from profile, editable by user
+          programmeDays: [],    // [1..90] independent of calendar streak
+          completedDates: {},   // { 'YYYY-MM-DD': { programmeDay, title, manual } }
+          workoutHistory: [],   // chronological completed workout logs
+          dailyLogs: {},        // { 'YYYY-MM-DD': { date, waterMl, meals: [] } }
+          activeWorkoutDraft: { // in-progress session state keyed by date + dayIdx
+            date: getLocalDateKey(),
+            dayIdx: null,
+            paused: false,
+            startedAt: null,
+            elapsedSec: 0,
+            sets: {}            // { 'exId-setNum': { done: bool, reps: number } }
+          },
+          swappedExercises: {}, // { 'dayIdx-slotIdx': 'exId' }
+          progressionState: {}, // { 'exId': { goodCount: number, repBonus: number, upgradedTo: null } }
+          expandedExInfo: {},   // UI toggle for exercise details
+          soundEnabled: true,
+          storageAvailable: true
+        };
+      }
+
+      let state = createFreshState();
+      let restTimer = { seconds: 60, defaultSeconds: 60, running: false, intervalId: null };
+      let progressChartInstance = null;
+
+      function getRecommendedSplitForFrequency(days) {
+        const d = Number(days) || 4;
+        if (d <= 3) return 'full_body';
+        if (d === 4) return 'upper_lower';
+        if (d === 5) return 'hybrid';
+        return 'ppl';
+      }
+
+      function evaluateSplitAdvice(sessionsPerWeek, format) {
+        const d = Number(sessionsPerWeek) || 4;
+        if (format === 'ppl' && d <= 2) {
+          return { level: 'warn', text: 'PPL on 2 days/week leaves a major movement pattern untrained each week. Full Body is strongly recommended for 2 days/week.' };
+        }
+        if (format === 'ppl' && d === 4) {
+          return { level: 'info', text: 'PPL on 4 days/week rotates unevenly across weeks. Upper / Lower gives more balanced weekly recovery.' };
+        }
+        if (format === 'full_body' && d >= 5) {
+          return { level: 'warn', text: `Full Body on ${d} days/week trains the same muscles on consecutive days with limited recovery. Consider Upper / Lower, Hybrid, or PPL.` };
+        }
+        if (format === 'upper_lower' && d === 2) {
+          return { level: 'info', text: 'Upper / Lower on 2 days/week hits each region once weekly. Full Body A/B trains every major muscle twice per week.' };
+        }
+        if (format === 'upper_lower' && d === 6) {
+          return { level: 'info', text: 'Upper / Lower on 6 days/week is high frequency — keep intensity moderate or switch to PPL × 2 for better recovery.' };
+        }
+        return { level: 'ok', text: `Great match: ${getFormatLabel(format)} balances muscle coverage and recovery well for ${d} days/week.` };
+      }
+
+      function generateDefaultScheduleSlots(sessionsPerWeek, format) {
+        const d = clampNumber(sessionsPerWeek, 2, 6, 4);
+        const activeDayMap = {
+          2: [0, 3],
+          3: [0, 2, 4],
+          4: [0, 1, 3, 4],
+          5: [0, 1, 2, 4, 5],
+          6: [0, 1, 2, 3, 4, 5]
+        };
+        const activeDays = activeDayMap[d] || activeDayMap[4];
+
+        const patternSequences = {
+          full_body: ['full_a', 'full_b', 'full_c', 'full_a', 'full_b', 'full_c'],
+          upper_lower: d === 5
+            ? ['upper', 'lower', 'conditioning', 'upper', 'lower']
+            : ['upper', 'lower', 'upper', 'lower', 'upper', 'lower'],
+          ppl: ['push', 'pull', 'legs', 'push', 'pull', 'legs'],
+          hybrid: d === 2
+            ? ['full_a', 'full_b']
+            : d === 3
+              ? ['upper', 'lower', 'conditioning']
+              : d === 4
+                ? ['upper', 'lower', 'push', 'pull']
+                : d === 5
+                  ? ['upper', 'lower', 'conditioning', 'upper', 'lower']
+                  : ['push', 'pull', 'legs', 'upper', 'lower', 'conditioning']
+        };
+
+        const seq = patternSequences[format] || patternSequences.upper_lower;
+        let ptr = 0;
+        return DAY_NAMES.map((_, idx) => {
+          if (!activeDays.includes(idx)) return { dayIdx: idx, focus: 'rest' };
+          const focus = seq[ptr % seq.length];
+          ptr++;
+          return { dayIdx: idx, focus };
+        });
+      }
+
+      function getDailyLog(dateKey) {
+        const key = parseLocalDateKey(dateKey) ? dateKey : getLocalDateKey();
+        if (!state.dailyLogs[key]) {
+          state.dailyLogs[key] = { date: key, waterMl: 0, meals: [] };
+        }
+        return state.dailyLogs[key];
+      }
+
+      function migrateV1ToV2(v1) {
+        const fresh = createFreshState();
+        if (!v1 || typeof v1 !== 'object') return fresh;
+
+        if (v1.profile && typeof v1.profile === 'object') {
+          const oldInt = v1.profile.intensity;
+          fresh.profile = {
+            ...DEFAULT_PROFILE,
+            gender: ['male', 'female', 'other'].includes(v1.profile.gender) ? v1.profile.gender : 'male',
+            age: clampNumber(v1.profile.age, 13, 85, 22),
+            weight: clampNumber(v1.profile.weight, 35, 200, 68),
+            weightUnit: v1.profile.weightUnit === 'lbs' ? 'lbs' : 'kg',
+            height: clampNumber(v1.profile.height, 130, 220, 174),
+            goal: ['lose', 'athletic', 'muscle'].includes(v1.profile.goal) ? v1.profile.goal : 'athletic',
+            equipment: ['bodyweight', 'pullup', 'dumbbells', 'both'].includes(v1.profile.equipment) ? v1.profile.equipment : 'bodyweight',
+            sessionsPerWeek: clampNumber(v1.profile.sessionsPerWeek, 2, 6, 4),
+            intensity: oldInt === 'beginner' ? 'low' : oldInt === 'intense' ? 'high' : 'moderate',
+            experience: oldInt === 'beginner' ? 'beginner' : oldInt === 'intense' ? 'advanced' : 'intermediate',
+            duration: [20, 30, 45, 60].includes(Number(v1.profile.duration)) ? Number(v1.profile.duration) : 45,
+            format: ['full_body', 'upper_lower', 'ppl', 'hybrid'].includes(v1.profile.format) ? v1.profile.format : 'upper_lower',
+            planBuilt: Boolean(v1.profile.planBuilt)
+          };
+        }
+
+        fresh.customSchedule = generateDefaultScheduleSlots(fresh.profile.sessionsPerWeek, fresh.profile.format);
+
+        // Migrate V1 completedDays into programmeDays safely
+        if (Array.isArray(v1.completedDays)) {
+          fresh.programmeDays = [...new Set(v1.completedDays.map(Number).filter(n => Number.isInteger(n) && n >= 1 && n <= 90))].sort((a, b) => a - b);
+        }
+
+        // Migrate V1 today water/meals into today's date-keyed dailyLog
+        const today = getLocalDateKey();
+        const water = clampNumber(v1.waterMl, 0, 8000, 0);
+        const meals = Array.isArray(v1.meals)
+          ? v1.meals.slice(0, 40).filter(m => m && typeof m.name === 'string').map(m => ({
+              id: String(m.id || Date.now() + Math.random()),
+              name: String(m.name).slice(0, 80),
+              kcal: clampNumber(m.kcal, 0, 5000, 0),
+              protein: clampNumber(m.protein, 0, 300, 0),
+              time: ''
+            }))
+          : [];
+        if (water > 0 || meals.length > 0) {
+          fresh.dailyLogs[today] = { date: today, waterMl: water, meals };
+        }
+
+        if (typeof v1.soundEnabled === 'boolean') fresh.soundEnabled = v1.soundEnabled;
+        return fresh;
+      }
+
+      function validateBackupPayload(raw) {
+        if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+          return { ok: false, error: 'Backup file must be a valid JSON object.' };
+        }
+        if (raw.version !== 2 && !raw.profile) {
+          return { ok: false, error: 'Unrecognized backup format. Expected a BareForm 90 backup.' };
+        }
+        if (raw.profile && typeof raw.profile !== 'object') {
+          return { ok: false, error: 'Invalid profile data inside backup.' };
+        }
+        if (raw.programmeDays !== undefined && !Array.isArray(raw.programmeDays)) {
+          return { ok: false, error: 'Invalid programmeDays field.' };
+        }
+        if (raw.completedDates !== undefined && (typeof raw.completedDates !== 'object' || Array.isArray(raw.completedDates))) {
+          return { ok: false, error: 'Invalid completedDates field.' };
+        }
+        if (raw.dailyLogs !== undefined && (typeof raw.dailyLogs !== 'object' || Array.isArray(raw.dailyLogs))) {
+          return { ok: false, error: 'Invalid dailyLogs field.' };
+        }
+        if (raw.workoutHistory !== undefined && !Array.isArray(raw.workoutHistory)) {
+          return { ok: false, error: 'Invalid workoutHistory field.' };
+        }
+
+        // Sanitize & build clean V2 state
+        const clean = createFreshState();
+        const p = raw.profile || {};
+        clean.profile = {
+          gender: ['male', 'female', 'other'].includes(p.gender) ? p.gender : 'male',
+          age: clampNumber(p.age, 13, 85, 22),
+          weight: clampNumber(p.weight, 35, 200, 68),
+          weightUnit: p.weightUnit === 'lbs' ? 'lbs' : 'kg',
+          height: clampNumber(p.height, 130, 220, 174),
+          experience: ['beginner', 'intermediate', 'advanced'].includes(p.experience) ? p.experience : 'intermediate',
+          goal: ['lose', 'athletic', 'muscle'].includes(p.goal) ? p.goal : 'athletic',
+          equipment: ['bodyweight', 'pullup', 'dumbbells', 'both'].includes(p.equipment) ? p.equipment : 'bodyweight',
+          sessionsPerWeek: clampNumber(p.sessionsPerWeek, 2, 6, 4),
+          intensity: ['low', 'moderate', 'high'].includes(p.intensity) ? p.intensity : 'moderate',
+          duration: [20, 30, 45, 60].includes(Number(p.duration)) ? Number(p.duration) : 45,
+          format: ['full_body', 'upper_lower', 'ppl', 'hybrid'].includes(p.format) ? p.format : 'upper_lower',
+          hotWeather: Boolean(p.hotWeather),
+          planBuilt: Boolean(p.planBuilt)
+        };
+
+        const validFocuses = ['rest', 'push', 'pull', 'legs', 'upper', 'lower', 'full_a', 'full_b', 'full_c', 'conditioning'];
+        if (Array.isArray(raw.customSchedule) && raw.customSchedule.length === 7) {
+          clean.customSchedule = raw.customSchedule.map((slot, idx) => ({
+            dayIdx: idx,
+            focus: slot && validFocuses.includes(slot.focus) ? slot.focus : 'rest'
+          }));
+        } else {
+          clean.customSchedule = generateDefaultScheduleSlots(clean.profile.sessionsPerWeek, clean.profile.format);
+        }
+
+        if (Array.isArray(raw.programmeDays)) {
+          clean.programmeDays = [...new Set(raw.programmeDays.map(Number).filter(n => Number.isInteger(n) && n >= 1 && n <= 90))].sort((a, b) => a - b);
+        }
+
+        if (raw.completedDates && typeof raw.completedDates === 'object') {
+          for (const [k, v] of Object.entries(raw.completedDates)) {
+            if (parseLocalDateKey(k) && v && typeof v === 'object') {
+              clean.completedDates[k] = {
+                programmeDay: clampNumber(v.programmeDay, 1, 90, 1),
+                title: String(v.title || 'Workout').slice(0, 80),
+                manual: Boolean(v.manual)
+              };
+            }
+          }
+        }
+
+        if (raw.dailyLogs && typeof raw.dailyLogs === 'object') {
+          for (const [k, v] of Object.entries(raw.dailyLogs)) {
+            if (parseLocalDateKey(k) && v && typeof v === 'object') {
+              const meals = Array.isArray(v.meals)
+                ? v.meals.slice(0, 50).filter(m => m && typeof m.name === 'string').map(m => ({
+                    id: String(m.id || Date.now() + Math.random()),
+                    name: String(m.name).slice(0, 80),
+                    kcal: clampNumber(m.kcal, 0, 5000, 0),
+                    protein: clampNumber(m.protein, 0, 300, 0),
+                    time: String(m.time || '').slice(0, 20)
+                  }))
+                : [];
+              clean.dailyLogs[k] = {
+                date: k,
+                waterMl: clampNumber(v.waterMl, 0, 10000, 0),
+                meals
+              };
+            }
+          }
+        }
+
+        if (Array.isArray(raw.workoutHistory)) {
+          clean.workoutHistory = raw.workoutHistory.slice(0, 200).filter(h => h && parseLocalDateKey(h.date)).map(h => ({
+            id: String(h.id || Date.now() + Math.random()),
+            date: h.date,
+            title: String(h.title || 'Workout').slice(0, 80),
+            short: String(h.short || 'Workout').slice(0, 30),
+            programmeDay: clampNumber(h.programmeDay, 1, 90, 1),
+            durationMin: clampNumber(h.durationMin, 5, 180, 30),
+            effort: ['easy', 'good', 'hard'].includes(h.effort) ? h.effort : 'good',
+            exercises: Array.isArray(h.exercises) ? h.exercises.slice(0, 20).map(ex => ({
+              id: String(ex.id || ''),
+              name: String(ex.name || '').slice(0, 80),
+              setsCompleted: clampNumber(ex.setsCompleted, 0, 20, 0),
+              targetSets: clampNumber(ex.targetSets, 1, 20, 3),
+              maxReps: clampNumber(ex.maxReps, 0, 300, 0),
+              timed: Boolean(ex.timed)
+            })) : []
+          }));
+        }
+
+        if (raw.swappedExercises && typeof raw.swappedExercises === 'object') {
+          for (const [k, v] of Object.entries(raw.swappedExercises)) {
+            if (typeof v === 'string' && EXERCISE_MAP[v]) clean.swappedExercises[k] = v;
+          }
+        }
+
+        if (raw.progressionState && typeof raw.progressionState === 'object') {
+          for (const [k, v] of Object.entries(raw.progressionState)) {
+            if (EXERCISE_MAP[k] && v && typeof v === 'object') {
+              clean.progressionState[k] = {
+                goodCount: clampNumber(v.goodCount, 0, 100, 0),
+                repBonus: clampNumber(v.repBonus, 0, 10, 0),
+                readyToProgress: Boolean(v.readyToProgress)
+              };
+            }
+          }
+        }
+
+        if (typeof raw.soundEnabled === 'boolean') clean.soundEnabled = raw.soundEnabled;
+        return { ok: true, data: clean };
+      }
+
+      function loadState() {
+        try {
+          const testKey = '__bf90_test__';
+          localStorage.setItem(testKey, '1');
+          localStorage.removeItem(testKey);
+          state.storageAvailable = true;
+        } catch (e) {
+          state.storageAvailable = false;
+          state.customSchedule = generateDefaultScheduleSlots(state.profile.sessionsPerWeek, state.profile.format);
+          const banner = document.getElementById('storage-warning');
+          if (banner) banner.classList.remove('hidden');
+          return;
+        }
+
+        try {
+          const rawV2 = localStorage.getItem(STORAGE_KEY_V2);
+          if (rawV2) {
+            const parsed = JSON.parse(rawV2);
+            const validated = validateBackupPayload(parsed);
+            if (validated.ok) {
+              state = validated.data;
+              state.storageAvailable = true;
+              return;
+            }
+          }
+          // Try V1 migration
+          const rawV1 = localStorage.getItem(STORAGE_KEY_V1);
+          if (rawV1) {
+            const parsedV1 = JSON.parse(rawV1);
+            state = migrateV1ToV2(parsedV1);
+            state.storageAvailable = true;
+            saveState();
+            return;
+          }
+        } catch (e) {
+          // Corrupted storage: fall back cleanly without crashing
+        }
+        state.customSchedule = generateDefaultScheduleSlots(state.profile.sessionsPerWeek, state.profile.format);
+      }
+
+      function saveState() {
+        if (!state.storageAvailable) return;
+        try {
+          const payload = {
+            version: 2,
+            profile: state.profile,
+            customSchedule: state.customSchedule,
+            programmeDays: state.programmeDays,
+            completedDates: state.completedDates,
+            workoutHistory: state.workoutHistory,
+            dailyLogs: state.dailyLogs,
+            swappedExercises: state.swappedExercises,
+            progressionState: state.progressionState,
+            soundEnabled: state.soundEnabled
+          };
+          localStorage.setItem(STORAGE_KEY_V2, JSON.stringify(payload));
+        } catch (e) {
+          // Ignore quota/storage errors
+        }
+      }
+
+      // ============================================================
+      // 4. WORKOUT ENGINE, SCHEDULE, & PROGRESSIVE OVERLOAD
+      // ============================================================
+      function getAllowedEquipment(equipKey) {
+        if (equipKey === 'bodyweight') return ['bodyweight'];
+        if (equipKey === 'pullup') return ['bodyweight', 'pullup'];
+        if (equipKey === 'dumbbells') return ['bodyweight', 'dumbbells'];
+        return ['bodyweight', 'pullup', 'dumbbells'];
+      }
+
+      function getEquipmentLabel(equipKey) {
+        const map = {
+          bodyweight: 'Zero Equipment (Bodyweight)',
+          pullup: 'Bodyweight + Pull-Up Bar',
+          dumbbells: 'Bodyweight + Dumbbells',
+          both: 'Pull-Up Bar + Dumbbells'
+        };
+        return map[equipKey] || 'Zero Equipment';
+      }
+
+      function getFormatLabel(fmt) {
+        const map = {
+          full_body: 'Full Body',
+          upper_lower: 'Upper / Lower',
+          ppl: 'Push / Pull / Legs (PPL)',
+          hybrid: 'Hybrid Athletic Split'
+        };
+        return map[fmt] || 'Upper / Lower';
+      }
+
+      const FOCUS_META = {
+        rest: { short: 'Rest', title: 'Active Recovery & Mobility', warmupKey: 'full', patterns: [] },
+        push: { short: 'Push', title: 'Push — Chest, Shoulders & Triceps', warmupKey: 'push', patterns: ['push', 'push', 'push', 'push', 'core'] },
+        pull: { short: 'Pull', title: 'Pull — Back, Lats & Biceps', warmupKey: 'pull', patterns: ['pull', 'pull', 'pull', 'pull', 'core'] },
+        legs: { short: 'Legs', title: 'Legs — Quads, Glutes & Hamstrings', warmupKey: 'legs', patterns: ['squat', 'hinge', 'squat', 'hinge', 'core'] },
+        upper: { short: 'Upper', title: 'Upper Body — Push & Pull Balance', warmupKey: 'upper', patterns: ['push', 'pull', 'push', 'pull', 'core'] },
+        lower: { short: 'Lower', title: 'Lower Body — Squat, Hinge & Core', warmupKey: 'lower', patterns: ['squat', 'hinge', 'squat', 'hinge', 'core'] },
+        full_a: { short: 'Full Body A', title: 'Full Body A — Strength Foundation', warmupKey: 'full', patterns: ['squat', 'push', 'pull', 'hinge', 'core'] },
+        full_b: { short: 'Full Body B', title: 'Full Body B — Balanced Volume', warmupKey: 'full', patterns: ['hinge', 'pull', 'push', 'squat', 'core'] },
+        full_c: { short: 'Full Body C', title: 'Full Body C — Athletic Power', warmupKey: 'full', patterns: ['squat', 'push', 'pull', 'conditioning', 'core'] },
+        conditioning: { short: 'Conditioning', title: 'Core & Athletic Conditioning', warmupKey: 'conditioning', patterns: ['conditioning', 'core', 'squat', 'push', 'core'] }
+      };
+
+      function pickExercisesForFocus(focus, count, p, dayIdx) {
+        const meta = FOCUS_META[focus] || FOCUS_META.full_a;
+        const allowed = getAllowedEquipment(p.equipment);
+        const maxDiff = p.experience === 'beginner' ? 1 : p.experience === 'intermediate' ? 2 : 3;
+        const chosen = [];
+        const usedIds = new Set();
+
+        for (let i = 0; i < count; i++) {
+          const pattern = meta.patterns[i % meta.patterns.length];
+          let pool = EXERCISES.filter(e => e.pattern === pattern && allowed.includes(e.equip) && e.difficulty <= maxDiff && !usedIds.has(e.id));
+          if (pool.length === 0) {
+            pool = EXERCISES.filter(e => e.pattern === pattern && allowed.includes(e.equip) && !usedIds.has(e.id));
+          }
+          if (pool.length === 0) continue;
+
+          // Prioritize optional gear when selected so plan genuinely reflects kit
+          const gearPool = pool.filter(e => e.equip !== 'bodyweight');
+          const activePool = (gearPool.length > 0 && (i % 2 === 0 || p.equipment === 'both')) ? gearPool : pool;
+
+          activePool.sort((a, b) => p.experience === 'advanced' ? b.difficulty - a.difficulty : a.difficulty - b.difficulty);
+          const pick = activePool[(dayIdx + i) % activePool.length];
+          usedIds.add(pick.id);
+          chosen.push(pick);
+        }
+        return chosen;
+      }
+
+      function buildWeeklyPlan() {
+        const p = state.profile;
+        if (!Array.isArray(state.customSchedule) || state.customSchedule.length !== 7) {
+          state.customSchedule = generateDefaultScheduleSlots(p.sessionsPerWeek, p.format);
+        }
+
+        const exCount = p.duration <= 20 ? 4 : p.duration <= 30 ? 5 : p.duration <= 45 ? 6 : 7;
+        const baseSets = p.intensity === 'low' ? 3 : p.intensity === 'moderate' ? 3 : 4;
+        const restMod = p.intensity === 'low' ? 15 : p.intensity === 'high' ? -10 : 0;
+        const allowed = getAllowedEquipment(p.equipment);
+
+        return state.customSchedule.map((slot, idx) => {
+          const focus = slot.focus || 'rest';
+          const meta = FOCUS_META[focus] || FOCUS_META.rest;
+          if (focus === 'rest') {
+            return {
+              dayIdx: idx,
+              dayShort: DAY_NAMES[idx],
+              dayFull: DAY_FULL[idx],
+              focus: 'rest',
+              isRest: true,
+              short: 'Rest',
+              title: meta.title,
+              duration: 15,
+              exercises: [],
+              warmup: [],
+              recoveryNotes: [
+                '10–20 min easy walk or gentle joint mobility flow',
+                'Stay hydrated and eat balanced, protein-rich meals to rebuild muscle',
+                'Aim for 7–9 hours of quality sleep — growth happens during recovery'
+              ]
+            };
+          }
+
+          const picked = pickExercisesForFocus(focus, exCount, p, idx);
+          const exercises = picked.map((ex, slotIdx) => {
+            const swapKey = `${idx}-${slotIdx}`;
+            const swappedId = state.swappedExercises[swapKey];
+            let finalEx = ex;
+            if (swappedId && EXERCISE_MAP[swappedId] && allowed.includes(EXERCISE_MAP[swappedId].equip)) {
+              finalEx = EXERCISE_MAP[swappedId];
+            }
+
+            const prog = state.progressionState[finalEx.id] || { goodCount: 0, repBonus: 0, readyToProgress: false };
+            const repBonus = prog.repBonus || 0;
+            const repMin = finalEx.repMin + repBonus;
+            const repMax = finalEx.repMax + repBonus;
+            const targetText = finalEx.timed ? `${repMin}–${repMax}s` : `${repMin}–${repMax}`;
+
+            return {
+              ...finalEx,
+              slotIdx,
+              sets: baseSets,
+              repMin,
+              repMax,
+              targetText,
+              restSec: Math.max(30, finalEx.restSec + restMod),
+              readyToProgress: Boolean(prog.readyToProgress)
+            };
+          });
+
+          return {
+            dayIdx: idx,
+            dayShort: DAY_NAMES[idx],
+            dayFull: DAY_FULL[idx],
+            focus,
+            isRest: false,
+            short: meta.short,
+            title: meta.title,
+            duration: Number(p.duration) || 45,
+            exercises,
+            warmup: WARMUPS[meta.warmupKey] || WARMUPS.full
+          };
+        });
+      }
+
+      // ============================================================
+      // 5. CALENDAR STREAK & PROGRAMME PROGRESS ENGINE (Rest-Day Aware)
+      // ============================================================
+      function computeProgressAndStreak(plan) {
+        const todayKey = getLocalDateKey();
+        const completedDateKeys = Object.keys(state.completedDates).filter(k => parseLocalDateKey(k)).sort();
+        const totalWorkouts = completedDateKeys.length;
+        const completedToday = Boolean(state.completedDates[todayKey]);
+
+        const progSorted = [...new Set(state.programmeDays)].filter(d => d >= 1 && d <= 90).sort((a, b) => a - b);
+        const programmeCount = progSorted.length;
+        const nextProgrammeDay = programmeCount >= 90 ? 90 : (progSorted.length === 0 ? 1 : Math.min(90, Math.max(...progSorted) + 1));
+
+        const isRestWeekday = (dateKey) => {
+          const wIdx = getWeekdayIndexFromDateKey(dateKey);
+          return plan[wIdx] ? plan[wIdx].isRest : false;
+        };
+
+        // Current calendar streak: walk backward from today (or yesterday if today not yet done).
+        // Scheduled rest days do NOT break the streak; missed training days DO break the streak.
+        let currentStreak = 0;
+        let cursor = completedToday ? todayKey : addDaysToDateKey(todayKey, -1);
+        let safetySteps = 0;
+
+        while (safetySteps < 365) {
+          if (state.completedDates[cursor]) {
+            currentStreak++;
+            cursor = addDaysToDateKey(cursor, -1);
+          } else if (isRestWeekday(cursor)) {
+            // Only bridge across rest days if there is an earlier completed workout before it
+            const hasEarlier = completedDateKeys.some(k => k < cursor);
+            if (!hasEarlier) break;
+            cursor = addDaysToDateKey(cursor, -1);
+          } else {
+            break;
+          }
+          safetySteps++;
+        }
+
+        // Longest streak across all recorded dates (rest-day aware)
+        let longestStreak = currentStreak;
+        if (completedDateKeys.length > 0) {
+          let run = 1;
+          for (let i = 1; i < completedDateKeys.length; i++) {
+            const prevKey = completedDateKeys[i - 1];
+            const currKey = completedDateKeys[i];
+            let check = addDaysToDateKey(prevKey, 1);
+            let bridged = true;
+            let guard = 0;
+            while (check < currKey && guard < 14) {
+              if (!isRestWeekday(check)) { bridged = false; break; }
+              check = addDaysToDateKey(check, 1);
+              guard++;
+            }
+            if (check === currKey && bridged) run++;
+            else run = 1;
+            if (run > longestStreak) longestStreak = run;
+          }
+        }
+
+        // Workouts this calendar week (Mon..Sun)
+        const todayWeekday = getWeekdayIndexFromDateKey(todayKey);
+        const weekStart = addDaysToDateKey(todayKey, -todayWeekday);
+        const weekEnd = addDaysToDateKey(weekStart, 6);
+        const thisWeekDone = completedDateKeys.filter(k => k >= weekStart && k <= weekEnd).length;
+        const weeklyTarget = plan.filter(d => !d.isRest).length;
+
+        return {
+          todayKey,
+          completedToday,
+          totalWorkouts,
+          programmeCount,
+          programmePct: Math.round((programmeCount / 90) * 100),
+          nextProgrammeDay,
+          currentStreak,
+          longestStreak,
+          thisWeekDone,
+          weeklyTarget,
+          completedDateKeys
+        };
+      }
+
+      // ============================================================
+      // 6. AGE-SAFE NUTRITION & SENSIBLE HYDRATION CALCULATOR
+      // ============================================================
+      function calculateNutritionAndHydration(p) {
+        const age = clampNumber(p.age, 13, 85, 22);
+        const w = clampNumber(p.weight, 35, 200, 68);
+        const h = clampNumber(p.height, 130, 220, 174);
+        const isYouth = age < 18;
+
+        // Sensible hydration range (30–35 ml/kg + exercise + hot weather)
+        const workoutBonus = p.duration >= 60 ? 550 : p.duration >= 45 ? 400 : 250;
+        const heatBonus = p.hotWeather ? 350 : 0;
+        const lowWaterMl = Math.round((w * 30 + workoutBonus * 0.7 + heatBonus) / 50) * 50;
+        const highWaterMl = Math.round((w * 36 + workoutBonus + heatBonus) / 50) * 50;
+        const guideWaterMl = Math.round((lowWaterMl + highWaterMl) / 2 / 50) * 50;
+
+        const hydration = {
+          lowLiters: (lowWaterMl / 1000).toFixed(1),
+          highLiters: (highWaterMl / 1000).toFixed(1),
+          guideMl: guideWaterMl,
+          guideLiters: (guideWaterMl / 1000).toFixed(1),
+          glasses: Math.round(guideWaterMl / 250)
+        };
+
+        if (isYouth) {
+          return {
+            isYouth: true,
+            hydration,
+            calories: null
+          };
+        }
+
+        // Adult Mifflin-St Jeor estimate (clearly presented as a range estimate, not medical advice)
+        let bmr = 10 * w + 6.25 * h - 5 * age;
+        if (p.gender === 'male') bmr += 5;
+        else if (p.gender === 'female') bmr -= 161;
+        else bmr -= 78;
+
+        const sessions = clampNumber(p.sessionsPerWeek, 2, 6, 4);
+        const mult = Math.min(1.8, 1.25 + sessions * 0.055 + (p.intensity === 'high' ? 0.1 : p.intensity === 'moderate' ? 0.05 : 0));
+        const tdee = Math.round((bmr * mult) / 25) * 25;
+
+        let target = tdee;
+        let goalLabel = 'Maintenance Estimate';
+        if (p.goal === 'lose') {
+          target = Math.max(1450, tdee - 350);
+          goalLabel = 'Gentle Deficit Estimate';
+        } else if (p.goal === 'muscle') {
+          target = tdee + 250;
+          goalLabel = 'Modest Surplus Estimate';
+        }
+
+        const rangeLow = Math.max(1400, target - 100);
+        const rangeHigh = target + 100;
+        const proteinLow = Math.round(w * 1.4);
+        const proteinHigh = Math.round(w * 1.9);
+
+        return {
+          isYouth: false,
+          hydration,
+          calories: {
+            tdee,
+            target,
+            rangeLow,
+            rangeHigh,
+            proteinLow,
+            proteinHigh,
+            goalLabel
+          }
+        };
+      }
+
+      // ============================================================
+      // 7. AUDIO, TOAST, & MODAL HELPERS
+      // ============================================================
+      function playBeep(freq, dur) {
+        if (!state.soundEnabled) return;
+        try {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (!AudioCtx) return;
+          const ctx = new AudioCtx();
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.value = freq || 880;
+          gain.gain.setValueAtTime(0.07, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + (dur || 0.16));
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start();
+          osc.stop(ctx.currentTime + (dur || 0.16));
+        } catch (e) {}
+      }
+
+      function celebrate() {
+        if (typeof confetti === 'function') {
+          confetti({ particleCount: 70, spread: 65, origin: { y: 0.7 }, colors: ['#22C55E', '#F97316', '#38BDF8', '#FACC15'] });
+        }
+      }
+
+      let toastTimer = null;
+      function showToast(msg, isError) {
+        const el = document.getElementById('toast');
+        const box = document.getElementById('toast-box');
+        const msgEl = document.getElementById('toast-message');
+        if (!el || !msgEl) return;
+        msgEl.textContent = msg;
+        if (box) {
+          box.className = isError
+            ? 'bg-slate-900 border border-rose-500/50 text-rose-200 px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2.5 text-sm font-medium'
+            : 'bg-slate-900 border border-emerald-500/40 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2.5 text-sm font-medium';
+        }
+        el.classList.remove('opacity-0', 'translate-y-2');
+        el.classList.add('opacity-100', 'translate-y-0');
+        if (toastTimer) clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => {
+          el.classList.add('opacity-0', 'translate-y-2');
+          el.classList.remove('opacity-100', 'translate-y-0');
+        }, 2800);
+      }
+
+      function openModal(html, onAttach) {
+        const backdrop = document.getElementById('modal-backdrop');
+        const content = document.getElementById('modal-content');
+        if (!backdrop || !content) return;
+        content.innerHTML = html;
+        backdrop.classList.remove('hidden');
+        backdrop.classList.add('flex');
+        if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
+        if (typeof onAttach === 'function') onAttach(content);
+      }
+
+      function closeModal() {
+        const backdrop = document.getElementById('modal-backdrop');
+        if (!backdrop) return;
+        backdrop.classList.add('hidden');
+        backdrop.classList.remove('flex');
+      }
+
+      // ============================================================
+      // 8. REST TIMER ENGINE
+      // ============================================================
+      function stopRestTimer() {
+        if (restTimer.intervalId) {
+          clearInterval(restTimer.intervalId);
+          restTimer.intervalId = null;
+        }
+        restTimer.running = false;
+      }
+
+      function startRestTimer(seconds) {
+        stopRestTimer();
+        if (typeof seconds === 'number') {
+          restTimer.seconds = seconds;
+          restTimer.defaultSeconds = seconds;
+        }
+        if (restTimer.seconds <= 0) restTimer.seconds = restTimer.defaultSeconds || 60;
+        restTimer.running = true;
+        updateTimerUI();
+        restTimer.intervalId = setInterval(() => {
+          if (state.activeWorkoutDraft.paused) return;
+          restTimer.seconds -= 1;
+          if (restTimer.seconds <= 0) {
+            restTimer.seconds = 0;
+            stopRestTimer();
+            playBeep(1046, 0.25);
+            showToast('Rest complete — ready for your next set!');
+          }
+          updateTimerUI();
+        }, 1000);
+      }
+
+      function updateTimerUI() {
+        const display = document.getElementById('rest-timer-display');
+        const toggleBtn = document.getElementById('timer-toggle-btn');
+        if (display) {
+          const m = Math.floor(restTimer.seconds / 60);
+          const s = restTimer.seconds % 60;
+          display.textContent = `${m}:${s < 10 ? '0' : ''}${s}`;
+        }
+        if (toggleBtn) {
+          toggleBtn.textContent = restTimer.running ? 'Pause' : 'Start';
+        }
+      }
+
+      // ============================================================
+      // 9. MODALS: EXERCISE SWAP, COMPLETION SUMMARY, SETTINGS, MANUAL DATE
+      // ============================================================
+      function openSwapModal(dayIdx, slotIdx, currentEx) {
+        const allowed = getAllowedEquipment(state.profile.equipment);
+        const compatible = EXERCISES.filter(e =>
+          e.pattern === currentEx.pattern &&
+          allowed.includes(e.equip) &&
+          e.id !== currentEx.id
+        );
+
+        openModal(`
+          <div class="flex items-center justify-between mb-3">
+            <div>
+              <h3 class="text-lg font-bold text-white">Swap Exercise</h3>
+              <p class="text-xs text-slate-400">Showing compatible <span class="text-emerald-400 font-semibold uppercase">${escapeHtml(currentEx.pattern)}</span> moves for your equipment.</p>
+            </div>
+            <button data-close-modal class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"><i data-lucide="x" class="w-4 h-4"></i></button>
+          </div>
+          ${compatible.length === 0 ? `
+            <p class="text-sm text-slate-400 py-4">No other ${escapeHtml(currentEx.pattern)} variations match your current equipment filter.</p>
+          ` : `
+            <div class="space-y-2">
+              ${compatible.map(ex => `
+                <button data-choose-swap="${escapeHtml(ex.id)}" class="w-full p-3.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-800 hover:border-emerald-500/50 text-left transition">
+                  <div class="flex items-center justify-between gap-2">
+                    <span class="text-sm font-bold text-white">${escapeHtml(ex.name)}</span>
+                    ${getEquipBadge(ex.equip)}
+                  </div>
+                  <div class="text-xs text-slate-400 mt-1">${escapeHtml(ex.muscles)} · Difficulty ${ex.difficulty}/3</div>
+                  <div class="text-[11px] text-slate-500 mt-1">${escapeHtml(ex.instructions)}</div>
+                </button>
+              `).join('')}
+            </div>
+          `}
+        `, (box) => {
+          box.querySelectorAll('[data-close-modal]').forEach(b => b.addEventListener('click', closeModal));
+          box.querySelectorAll('[data-choose-swap]').forEach(b => {
+            b.addEventListener('click', () => {
+              const newId = b.getAttribute('data-choose-swap');
+              state.swappedExercises[`${dayIdx}-${slotIdx}`] = newId;
+              saveState();
+              closeModal();
+              showToast(`Swapped to ${EXERCISE_MAP[newId].name}`);
+              render();
+            });
+          });
+        });
+      }
+
+      function completeWorkoutSession(day, effort) {
+        const plan = buildWeeklyPlan();
+        const stats = computeProgressAndStreak(plan);
+        const todayKey = stats.todayKey;
+
+        // Prevent duplicate completion on same calendar date
+        if (state.completedDates[todayKey]) {
+          showToast('Workout already logged for today!', true);
+          return false;
+        }
+
+        const nextProg = stats.nextProgrammeDay;
+        if (!state.programmeDays.includes(nextProg)) {
+          state.programmeDays.push(nextProg);
+          state.programmeDays.sort((a, b) => a - b);
+        }
+
+        state.completedDates[todayKey] = {
+          programmeDay: nextProg,
+          title: day.title,
+          manual: false
+        };
+
+        // Evaluate sets & update progressive overload state
+        const exSummaries = [];
+        const progressedNames = [];
+
+        day.exercises.forEach(ex => {
+          let setsCompleted = 0;
+          let maxReps = 0;
+          let hitTopRangeAllSets = true;
+
+          for (let s = 1; s <= ex.sets; s++) {
+            const entry = state.activeWorkoutDraft.sets[`${ex.id}-${s}`];
+            if (entry && entry.done) {
+              setsCompleted++;
+              const r = Number(entry.reps) || ex.repMin;
+              if (r > maxReps) maxReps = r;
+              if (r < ex.repMax) hitTopRangeAllSets = false;
+            } else {
+              hitTopRangeAllSets = false;
+            }
+          }
+
+          exSummaries.push({
+            id: ex.id,
+            name: ex.name,
+            setsCompleted,
+            targetSets: ex.sets,
+            maxReps,
+            timed: ex.timed
+          });
+
+          // Sensible progressive overload rule:
+          // Must complete all target sets at or above top of rep range AND effort isn't 'hard'
+          if (setsCompleted >= ex.sets && hitTopRangeAllSets && effort !== 'hard') {
+            const cur = state.progressionState[ex.id] || { goodCount: 0, repBonus: 0, readyToProgress: false };
+            cur.goodCount += (effort === 'easy' ? 2 : 1);
+            if (cur.goodCount >= 2) {
+              cur.readyToProgress = true;
+              progressedNames.push(ex.name);
+            }
+            state.progressionState[ex.id] = cur;
+          }
+        });
+
+        state.workoutHistory.unshift({
+          id: String(Date.now()),
+          date: todayKey,
+          title: day.title,
+          short: day.short,
+          programmeDay: nextProg,
+          durationMin: day.duration,
+          effort,
+          exercises: exSummaries
+        });
+
+        // Clear active draft sets
+        state.activeWorkoutDraft = {
+          date: todayKey,
+          dayIdx: day.dayIdx,
+          paused: false,
+          startedAt: null,
+          elapsedSec: 0,
+          sets: {}
+        };
+
+        stopRestTimer();
+        saveState();
+        celebrate();
+        playBeep(987, 0.25);
+
+        const msg = progressedNames.length > 0
+          ? `Day ${nextProg} complete! ${progressedNames.length} move(s) ready to progress.`
+          : `Day ${nextProg} complete — streak updated!`;
+        showToast(msg);
+        return true;
+      }
+
+      function openCompleteWorkoutModal(day) {
+        const plan = buildWeeklyPlan();
+        const stats = computeProgressAndStreak(plan);
+
+        if (stats.completedToday) {
+          showToast('You already completed a workout today!', true);
+          return;
+        }
+
+        let completedSets = 0;
+        let totalSets = 0;
+        day.exercises.forEach(ex => {
+          totalSets += ex.sets;
+          for (let s = 1; s <= ex.sets; s++) {
+            if (state.activeWorkoutDraft.sets[`${ex.id}-${s}`]?.done) completedSets++;
+          }
+        });
+
+        openModal(`
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-lg font-bold text-white">Finish &amp; Log Workout</h3>
+            <button data-close-modal class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"><i data-lucide="x" class="w-4 h-4"></i></button>
+          </div>
+          <div class="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 mb-4 text-sm space-y-1">
+            <div class="font-bold text-white">${escapeHtml(day.title)}</div>
+            <div class="text-xs text-slate-400">Date: <span class="text-slate-200">${escapeHtml(stats.todayKey)}</span> · Programme Day <span class="text-emerald-400 font-bold">#${stats.nextProgrammeDay}</span></div>
+            <div class="text-xs text-slate-400">Sets logged: <span class="text-emerald-400 font-bold">${completedSets} / ${totalSets}</span></div>
+          </div>
+          <div class="mb-5">
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">How did this session feel? (Guides Progressive Overload)</label>
+            <div class="grid grid-cols-3 gap-2" id="effort-picker">
+              <button type="button" data-effort="easy" class="effort-opt p-3 rounded-xl border border-slate-800 bg-slate-900 text-center hover:border-emerald-500/50 transition">
+                <div class="text-sm font-bold text-white">Easy</div>
+                <div class="text-[10px] text-slate-400 mt-0.5">Could do more</div>
+              </button>
+              <button type="button" data-effort="good" class="effort-opt p-3 rounded-xl border border-emerald-500 bg-emerald-500/15 text-center transition">
+                <div class="text-sm font-bold text-emerald-300">Just Right</div>
+                <div class="text-[10px] text-slate-300 mt-0.5">Solid challenge</div>
+              </button>
+              <button type="button" data-effort="hard" class="effort-opt p-3 rounded-xl border border-slate-800 bg-slate-900 text-center hover:border-amber-500/50 transition">
+                <div class="text-sm font-bold text-white">Hard</div>
+                <div class="text-[10px] text-slate-400 mt-0.5">Keep load steady</div>
+              </button>
+            </div>
+          </div>
+          <div class="flex items-center justify-end gap-2.5">
+            <button data-close-modal class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold">Cancel</button>
+            <button id="confirm-finish-workout" class="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-sm font-extrabold">Save &amp; Complete</button>
+          </div>
+        `, (box) => {
+          let chosenEffort = 'good';
+          box.querySelectorAll('[data-close-modal]').forEach(b => b.addEventListener('click', closeModal));
+          box.querySelectorAll('.effort-opt').forEach(btn => {
+            btn.addEventListener('click', () => {
+              chosenEffort = btn.getAttribute('data-effort');
+              box.querySelectorAll('.effort-opt').forEach(b => {
+                const active = b === btn;
+                b.className = active
+                  ? 'effort-opt p-3 rounded-xl border border-emerald-500 bg-emerald-500/15 text-center transition'
+                  : 'effort-opt p-3 rounded-xl border border-slate-800 bg-slate-900 text-center hover:border-slate-600 transition';
+              });
+            });
+          });
+          const confirmBtn = box.querySelector('#confirm-finish-workout');
+          if (confirmBtn) {
+            confirmBtn.addEventListener('click', () => {
+              const ok = completeWorkoutSession(day, chosenEffort);
+              closeModal();
+              if (ok) {
+                state.activeTab = 'progress';
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                render();
+              }
+            });
+          }
+        });
+      }
+
+      function openManualDateModal() {
+        const today = getLocalDateKey();
+        const minDate = addDaysToDateKey(today, -14);
+        const todayLogged = Boolean(state.completedDates[today]);
+
+        openModal(`
+          <div class="flex items-center justify-between mb-3">
+            <div>
+              <h3 class="text-lg font-bold text-white">Manual Activity Correction</h3>
+              <p class="text-xs text-slate-400">Log a workout you forgot to record (up to 14 days back) or undo today’s entry.</p>
+            </div>
+            <button data-close-modal class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"><i data-lucide="x" class="w-4 h-4"></i></button>
+          </div>
+          <form id="manual-log-form" class="space-y-3 mb-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Past Workout Date</label>
+              <input id="manual-date-input" type="date" max="${today}" min="${minDate}" value="${addDaysToDateKey(today, -1)}" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Session Label</label>
+              <input id="manual-title-input" type="text" maxlength="60" value="Logged Past Workout" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white" />
+            </div>
+            <button type="submit" class="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-sm">Record Past Workout</button>
+          </form>
+          ${todayLogged ? `
+            <div class="pt-3 border-t border-slate-800">
+              <button id="undo-today-workout-btn" class="w-full py-2.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/35 text-rose-300 text-xs font-bold">
+                Undo Today’s Completed Workout (${escapeHtml(today)})
+              </button>
+            </div>
+          ` : ''}
+        `, (box) => {
+          box.querySelectorAll('[data-close-modal]').forEach(b => b.addEventListener('click', closeModal));
+          const form = box.querySelector('#manual-log-form');
+          if (form) {
+            form.addEventListener('submit', (e) => {
+              e.preventDefault();
+              const dateVal = box.querySelector('#manual-date-input').value;
+              const titleVal = box.querySelector('#manual-title-input').value.trim() || 'Manual Workout';
+              if (!parseLocalDateKey(dateVal) || dateVal > today) {
+                showToast('Please pick a valid date up to today.', true);
+                return;
+              }
+              if (state.completedDates[dateVal]) {
+                showToast('A workout is already recorded for that date.', true);
+                return;
+              }
+              const plan = buildWeeklyPlan();
+              const stats = computeProgressAndStreak(plan);
+              const nextProg = stats.nextProgrammeDay;
+              if (!state.programmeDays.includes(nextProg)) state.programmeDays.push(nextProg);
+              state.completedDates[dateVal] = { programmeDay: nextProg, title: titleVal.slice(0, 60), manual: true };
+              state.workoutHistory.unshift({
+                id: String(Date.now()),
+                date: dateVal,
+                title: titleVal.slice(0, 60),
+                short: 'Manual',
+                programmeDay: nextProg,
+                durationMin: state.profile.duration,
+                effort: 'good',
+                exercises: []
+              });
+              saveState();
+              closeModal();
+              showToast(`Logged workout for ${dateVal}`);
+              render();
+            });
+          }
+          const undoBtn = box.querySelector('#undo-today-workout-btn');
+          if (undoBtn) {
+            undoBtn.addEventListener('click', () => {
+              const rec = state.completedDates[today];
+              if (rec) {
+                delete state.completedDates[today];
+                state.programmeDays = state.programmeDays.filter(d => d !== rec.programmeDay);
+                state.workoutHistory = state.workoutHistory.filter(h => h.date !== today);
+                saveState();
+                closeModal();
+                showToast('Today’s workout log removed.');
+                render();
+              }
+            });
+          }
+        });
+      }
+
+      function openSettingsModal() {
+        openModal(`
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold text-white">Backup, Restore &amp; Settings</h3>
+            <button data-close-modal class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"><i data-lucide="x" class="w-4 h-4"></i></button>
+          </div>
+          <div class="space-y-4">
+            <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2.5">
+              <div class="text-sm font-bold text-white">Export / Import JSON Backup</div>
+              <p class="text-xs text-slate-400">Your data stays 100% private on your device. Export a backup anytime or restore from a previous JSON file.</p>
+              <div class="flex flex-wrap gap-2 pt-1">
+                <button id="export-json-btn" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-extrabold flex items-center gap-1.5">
+                  <i data-lucide="download" class="w-3.5 h-3.5"></i> Export JSON
+                </button>
+                <label class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold cursor-pointer flex items-center gap-1.5 border border-slate-700">
+                  <i data-lucide="upload" class="w-3.5 h-3.5"></i> Import JSON
+                  <input id="import-json-input" type="file" accept=".json,application/json" class="hidden" />
+                </label>
+              </div>
+              <p id="import-status-msg" class="text-xs hidden"></p>
+            </div>
+
+            <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between">
+              <div>
+                <div class="text-sm font-bold text-white">Timer Sound Effects</div>
+                <div class="text-xs text-slate-400">Subtle chime when rest timer finishes</div>
+              </div>
+              <button id="settings-sound-btn" class="px-3.5 py-1.5 rounded-lg text-xs font-bold ${state.soundEnabled ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-slate-800 text-slate-400 border border-slate-700'}">
+                ${state.soundEnabled ? 'On' : 'Muted'}
+              </button>
+            </div>
+
+            <div class="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 space-y-2">
+              <div class="text-sm font-bold text-rose-300">Reset All Progress</div>
+              <p class="text-xs text-slate-400">Clears workout history, 90-day streak, and daily water/meal logs while keeping your custom plan settings.</p>
+              <button id="confirm-reset-all-btn" class="px-4 py-2 rounded-xl bg-rose-500 hover:bg-rose-400 text-white text-xs font-bold">Reset Progress</button>
+            </div>
+          </div>
+        `, (box) => {
+          box.querySelectorAll('[data-close-modal]').forEach(b => b.addEventListener('click', closeModal));
+
+          const exportBtn = box.querySelector('#export-json-btn');
+          if (exportBtn) {
+            exportBtn.addEventListener('click', () => {
+              const payload = {
+                version: 2,
+                exportedAt: new Date().toISOString(),
+                profile: state.profile,
+                customSchedule: state.customSchedule,
+                programmeDays: state.programmeDays,
+                completedDates: state.completedDates,
+                workoutHistory: state.workoutHistory,
+                dailyLogs: state.dailyLogs,
+                swappedExercises: state.swappedExercises,
+                progressionState: state.progressionState,
+                soundEnabled: state.soundEnabled
+              };
+              const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `bareform90-backup-${getLocalDateKey()}.json`;
+              document.body.appendChild(a);
+              a.click();
+              a.remove();
+              URL.revokeObjectURL(url);
+              showToast('Backup exported!');
+            });
+          }
+
+          const importInput = box.querySelector('#import-json-input');
+          const statusMsg = box.querySelector('#import-status-msg');
+          if (importInput) {
+            importInput.addEventListener('change', (e) => {
+              const file = e.target.files && e.target.files[0];
+              if (!file) return;
+              const reader = new FileReader();
+              reader.onload = () => {
+                try {
+                  const parsed = JSON.parse(String(reader.result || ''));
+                  const res = validateBackupPayload(parsed);
+                  if (!res.ok) {
+                    if (statusMsg) {
+                      statusMsg.textContent = res.error;
+                      statusMsg.className = 'text-xs text-rose-400 block';
+                    }
+                    showToast(res.error, true);
+                    return;
+                  }
+                  const avail = state.storageAvailable;
+                  state = res.data;
+                  state.storageAvailable = avail;
+                  saveState();
+                  closeModal();
+                  showToast('Backup restored successfully!');
+                  render();
+                } catch (err) {
+                  if (statusMsg) {
+                    statusMsg.textContent = 'Invalid JSON file — import rejected.';
+                    statusMsg.className = 'text-xs text-rose-400 block';
+                  }
+                  showToast('Invalid JSON file.', true);
+                }
+              };
+              reader.readAsText(file);
+            });
+          }
+
+          const soundBtn = box.querySelector('#settings-sound-btn');
+          if (soundBtn) {
+            soundBtn.addEventListener('click', () => {
+              state.soundEnabled = !state.soundEnabled;
+              saveState();
+              openSettingsModal();
+            });
+          }
+
+          const resetBtn = box.querySelector('#confirm-reset-all-btn');
+          if (resetBtn) {
+            resetBtn.addEventListener('click', () => {
+              state.programmeDays = [];
+              state.completedDates = {};
+              state.workoutHistory = [];
+              state.dailyLogs = {};
+              state.progressionState = {};
+              state.activeWorkoutDraft.sets = {};
+              saveState();
+              closeModal();
+              showToast('Progress cleared.');
+              render();
+            });
+          }
+        });
+      }
+
+      // ============================================================
+      // 10. VIEW RENDERERS
+      // ============================================================
+      function getEquipBadge(equip) {
+        if (equip === 'pullup') return '<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">Pull-Up Bar</span>';
+        if (equip === 'dumbbells') return '<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-sky-500/15 text-sky-300 border border-sky-500/30">Dumbbells</span>';
+        return '<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">Bodyweight</span>';
+      }
+
+      function renderTodayView(plan, nut, stats) {
+        const todayIdx = getWeekdayIndexFromDateKey(stats.todayKey);
+        const todayPlan = plan[todayIdx];
+        const previewDay = plan[state.selectedScheduleDay] || todayPlan;
+        const todayLog = getDailyLog(stats.todayKey);
+        const waterPct = Math.min(100, Math.round((todayLog.waterMl / Math.max(1, nut.hydration.guideMl)) * 100));
+
+        return `
+          <div class="space-y-5 fade-in">
+            <!-- Hero Card -->
+            <div class="glass-card rounded-2xl p-5 sm:p-6 relative overflow-hidden">
+              <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <div class="flex flex-wrap items-center gap-2 mb-2">
+                    <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">${escapeHtml(getFormatLabel(state.profile.format))}</span>
+                    <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-800 text-slate-300 border border-slate-700">${escapeHtml(getEquipmentLabel(state.profile.equipment))}</span>
+                    <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-800 text-slate-300 border border-slate-700">${escapeHtml(stats.todayKey)}</span>
+                  </div>
+                  <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                    ${stats.completedToday
+                      ? `Completed Today — Programme Day ${stats.programmeCount}/90`
+                      : todayPlan.isRest
+                        ? `${todayPlan.dayFull}: Active Recovery Day`
+                        : `${todayPlan.dayFull}: ${todayPlan.short} (Day ${stats.nextProgrammeDay}/90)`}
+                  </h1>
+                  <p class="text-sm text-slate-400 mt-1">
+                    ${stats.completedToday
+                      ? 'Great consistency! Hydrate, refuel well, and let your muscles recover for the next session.'
+                      : todayPlan.isRest
+                        ? 'Rest days protect your streak and fuel growth. Walk, stretch, or pick another day if you want to train.'
+                        : `${todayPlan.title} · ${todayPlan.exercises.length} exercises · ~${todayPlan.duration} min`}
+                  </p>
+                </div>
+                <div class="flex flex-wrap items-center gap-2.5 shrink-0">
+                  <button data-action="go-workout" class="px-5 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-sm transition flex items-center gap-2 shadow-lg shadow-emerald-500/20">
+                    <i data-lucide="${stats.completedToday ? 'check-circle-2' : 'play'}" class="w-4 h-4"></i>
+                    <span>${stats.completedToday ? 'View Workout' : todayPlan.isRest ? 'Open Workout Player' : 'Start Today’s Workout'}</span>
+                  </button>
+                  <button data-action="go-builder" class="px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-sm border border-slate-700 transition">
+                    Customize Plan
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 4 Clean Summary Cards -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+              <div class="glass-card rounded-2xl p-4">
+                <div class="flex items-center justify-between text-xs font-bold uppercase text-slate-400 mb-2">
+                  <span>Streak</span>
+                  <i data-lucide="flame" class="w-4 h-4 text-orange-400"></i>
+                </div>
+                <div class="text-2xl font-extrabold text-white">${stats.currentStreak} <span class="text-xs font-semibold text-slate-400">days</span></div>
+                <div class="text-[11px] text-slate-400 mt-1">Best: ${stats.longestStreak}d · Rest-day safe</div>
+              </div>
+
+              <div class="glass-card rounded-2xl p-4">
+                <div class="flex items-center justify-between text-xs font-bold uppercase text-slate-400 mb-2">
+                  <span>90-Day Progress</span>
+                  <i data-lucide="award" class="w-4 h-4 text-emerald-400"></i>
+                </div>
+                <div class="text-2xl font-extrabold text-white">${stats.programmeCount} <span class="text-xs font-semibold text-slate-400">/ 90</span></div>
+                <div class="w-full h-1.5 rounded-full bg-slate-800 mt-2 overflow-hidden">
+                  <div class="h-full bg-emerald-500 rounded-full" style="width:${stats.programmePct}%"></div>
+                </div>
+              </div>
+
+              <div class="glass-card rounded-2xl p-4">
+                <div class="flex items-center justify-between text-xs font-bold uppercase text-slate-400 mb-2">
+                  <span>This Week</span>
+                  <i data-lucide="calendar-check" class="w-4 h-4 text-emerald-400"></i>
+                </div>
+                <div class="text-2xl font-extrabold text-white">${stats.thisWeekDone} <span class="text-xs font-semibold text-slate-400">/ ${stats.weeklyTarget}</span></div>
+                <div class="text-[11px] text-slate-400 mt-1">Weekly sessions completed</div>
+              </div>
+
+              <div class="glass-card rounded-2xl p-4">
+                <div class="flex items-center justify-between text-xs font-bold uppercase text-slate-400 mb-2">
+                  <span>Today’s Water</span>
+                  <i data-lucide="droplets" class="w-4 h-4 text-sky-400"></i>
+                </div>
+                <div class="text-2xl font-extrabold text-white">${(todayLog.waterMl / 1000).toFixed(2)}L</div>
+                <div class="flex items-center gap-1.5 mt-2">
+                  <button data-water-today="250" class="flex-1 py-1 rounded-lg bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 text-sky-300 text-[11px] font-bold">+250ml</button>
+                  <button data-water-today="500" class="flex-1 py-1 rounded-lg bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 text-sky-300 text-[11px] font-bold">+500ml</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Interactive Weekly Strip & Preview -->
+            <div class="glass-card rounded-2xl p-5">
+              <div class="flex items-center justify-between mb-3.5">
+                <div>
+                  <h2 class="text-base font-bold text-white">Weekly Schedule</h2>
+                  <p class="text-xs text-slate-400">Tap any day to preview exercises or customize in Schedule.</p>
+                </div>
+                <button data-action="go-schedule" class="text-xs font-semibold text-emerald-400 hover:underline">Edit Schedule →</button>
+              </div>
+              <div class="grid grid-cols-7 gap-1.5 sm:gap-2">
+                ${plan.map((d, idx) => {
+                  const isSel = idx === state.selectedScheduleDay;
+                  const isToday = idx === todayIdx;
+                  return `
+                    <button data-select-day="${idx}" class="p-2 sm:p-3 rounded-xl border text-left transition min-h-[72px] flex flex-col justify-between ${
+                      isSel
+                        ? 'bg-emerald-500/15 border-emerald-500 text-white'
+                        : d.isRest
+                          ? 'bg-slate-900/60 border-slate-800/80 text-slate-400 hover:border-slate-700'
+                          : 'bg-surfaceLight/70 border-slate-800 text-slate-200 hover:border-slate-600'
+                    }">
+                      <div class="flex items-center justify-between">
+                        <span class="text-[11px] font-bold uppercase">${d.dayShort}</span>
+                        ${isToday ? '<span class="w-2 h-2 rounded-full bg-emerald-400" title="Today"></span>' : ''}
+                      </div>
+                      <div class="mt-1.5">
+                        <div class="text-xs font-bold truncate ${d.isRest ? 'text-slate-500' : 'text-white'}">${escapeHtml(d.short)}</div>
+                        <div class="text-[10px] text-slate-400 hidden sm:block">${d.isRest ? 'Recovery' : d.duration + 'm'}</div>
+                      </div>
+                    </button>
+                  `;
+                }).join('')}
+              </div>
+
+              <div class="mt-4 pt-4 border-t border-slate-800/80">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                  <div>
+                    <h3 class="text-sm font-bold text-white">${escapeHtml(previewDay.dayFull)}: ${escapeHtml(previewDay.title)}</h3>
+                    <p class="text-xs text-slate-400">${previewDay.isRest ? 'Recovery & mobility guidance' : `${previewDay.exercises.length} exercises · ${previewDay.duration} min`}</p>
+                  </div>
+                  ${!previewDay.isRest ? `<button data-launch-day="${previewDay.dayIdx}" class="px-3.5 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/35 text-emerald-300 text-xs font-bold transition">Open Workout →</button>` : ''}
+                </div>
+                ${previewDay.isRest ? `
+                  <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    ${previewDay.recoveryNotes.map(n => `
+                      <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800 text-xs text-slate-300 flex items-start gap-2">
+                        <i data-lucide="sparkles" class="w-4 h-4 text-emerald-400 shrink-0 mt-0.5"></i>
+                        <span>${escapeHtml(n)}</span>
+                      </div>
+                    `).join('')}
+                  </div>
+                ` : `
+                  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                    ${previewDay.exercises.map((ex, i) => `
+                      <div class="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800">
+                        <div class="flex items-start justify-between gap-2 mb-1">
+                          <span class="text-xs font-bold text-white">${i + 1}. ${escapeHtml(ex.name)}</span>
+                          ${getEquipBadge(ex.equip)}
+                        </div>
+                        <div class="text-xs text-emerald-400 font-semibold">${ex.sets} sets × ${escapeHtml(ex.targetText)}</div>
+                        <div class="text-[11px] text-slate-400 mt-0.5">${escapeHtml(ex.muscles)}</div>
+                      </div>
+                    `).join('')}
+                  </div>
+                `}
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      function renderWorkoutView(plan, stats) {
+        let day = plan[state.selectedScheduleDay];
+        if (!day || day.isRest) {
+          const first = plan.find(d => !d.isRest);
+          if (first) { state.selectedScheduleDay = first.dayIdx; day = first; }
+        }
+        if (!day) {
+          return `<div class="glass-card rounded-2xl p-6 text-center"><p class="text-slate-300">All days are currently set to Rest. Open Schedule to assign a training day.</p></div>`;
+        }
+
+        // Reset draft if calendar date changed
+        if (state.activeWorkoutDraft.date !== stats.todayKey) {
+          state.activeWorkoutDraft = { date: stats.todayKey, dayIdx: day.dayIdx, paused: false, startedAt: null, elapsedSec: 0, sets: {} };
+        }
+
+        let totalSets = 0;
+        let doneSets = 0;
+        day.exercises.forEach(ex => {
+          totalSets += ex.sets;
+          for (let s = 1; s <= ex.sets; s++) {
+            if (state.activeWorkoutDraft.sets[`${ex.id}-${s}`]?.done) doneSets++;
+          }
+        });
+        const pct = totalSets > 0 ? Math.round((doneSets / totalSets) * 100) : 0;
+        const m = Math.floor(restTimer.seconds / 60);
+        const s = restTimer.seconds % 60;
+        const timerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+
+        return `
+          <div class="space-y-4 fade-in">
+            ${stats.completedToday ? `
+              <div class="p-3.5 rounded-xl bg-emerald-500/15 border border-emerald-500/35 text-emerald-300 text-xs font-semibold flex items-center justify-between gap-2">
+                <span>You already completed today’s workout (${escapeHtml(stats.todayKey)}). Duplicate streak entries are prevented.</span>
+                <button data-action="go-progress" class="underline font-bold shrink-0">View Progress →</button>
+              </div>
+            ` : ''}
+
+            <!-- Header & Rest Timer -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <div class="lg:col-span-2 glass-card rounded-2xl p-5">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+                  <div class="flex items-center gap-2">
+                    <span class="px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-xs font-bold">${escapeHtml(day.dayFull)}</span>
+                    <button id="pause-workout-btn" class="px-2.5 py-1 rounded-lg text-xs font-bold border transition ${state.activeWorkoutDraft.paused ? 'bg-amber-500/20 border-amber-500/40 text-amber-300' : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white'}">
+                      ${state.activeWorkoutDraft.paused ? 'Resume Session' : 'Pause Session'}
+                    </button>
+                  </div>
+                  <select id="workout-day-switcher" class="bg-slate-900 border border-slate-700 text-slate-200 text-xs font-semibold rounded-lg px-2.5 py-1.5">
+                    ${plan.filter(d => !d.isRest).map(d => `<option value="${d.dayIdx}" ${d.dayIdx === day.dayIdx ? 'selected' : ''}>${escapeHtml(d.dayShort)}: ${escapeHtml(d.short)}</option>`).join('')}
+                  </select>
+                </div>
+                <h1 class="text-xl sm:text-2xl font-extrabold text-white">${escapeHtml(day.title)}</h1>
+                <div class="mt-3.5">
+                  <div class="flex justify-between text-xs font-semibold mb-1.5">
+                    <span class="text-slate-300">Progress ${state.activeWorkoutDraft.paused ? '(Paused)' : ''}</span>
+                    <span class="text-emerald-400">${doneSets} / ${totalSets} sets (${pct}%)</span>
+                  </div>
+                  <div class="w-full h-2.5 rounded-full bg-slate-800 overflow-hidden">
+                    <div class="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all" style="width:${pct}%"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Rest Timer -->
+              <div class="glass-card rounded-2xl p-5 flex flex-col justify-between">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Rest Timer</span>
+                  <button id="sound-toggle-btn" class="text-xs text-slate-400 hover:text-white flex items-center gap-1">
+                    <i data-lucide="${state.soundEnabled ? 'volume-2' : 'volume-x'}" class="w-3.5 h-3.5"></i>
+                    <span>${state.soundEnabled ? 'Sound On' : 'Muted'}</span>
+                  </button>
+                </div>
+                <div id="rest-timer-display" class="text-4xl font-extrabold font-mono text-center text-white my-2">${timerText}</div>
+                <div class="flex items-center gap-1.5">
+                  <button id="timer-minus-btn" class="px-2.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200">-15s</button>
+                  <button id="timer-toggle-btn" class="flex-1 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-extrabold">${restTimer.running ? 'Pause' : 'Start'}</button>
+                  <button id="timer-plus-btn" class="px-2.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200">+15s</button>
+                  <button id="timer-reset-btn" class="px-2.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300">Reset</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Warm-Up Recommendation -->
+            <details class="glass-card rounded-2xl p-4">
+              <summary class="cursor-pointer text-sm font-bold text-white flex items-center justify-between">
+                <span class="flex items-center gap-2"><i data-lucide="flame" class="w-4 h-4 text-amber-400"></i> Recommended 4-Min Warm-Up</span>
+                <span class="text-xs text-slate-400">Tap to expand</span>
+              </summary>
+              <ul class="mt-3 space-y-1.5 text-xs text-slate-300 pl-1">
+                ${day.warmup.map(w => `<li class="flex items-start gap-2"><span class="text-emerald-400">•</span><span>${escapeHtml(w)}</span></li>`).join('')}
+              </ul>
+            </details>
+
+            <!-- Exercise Cards -->
+            <div class="space-y-3.5">
+              ${day.exercises.map((ex, idx) => {
+                const infoOpen = Boolean(state.expandedExInfo[ex.id]);
+                return `
+                  <div class="glass-card rounded-2xl p-4 sm:p-5">
+                    <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-2.5 mb-3">
+                      <div class="min-w-0">
+                        <div class="flex flex-wrap items-center gap-2">
+                          <span class="w-6 h-6 rounded-lg bg-slate-800 text-emerald-400 text-xs font-extrabold flex items-center justify-center shrink-0">${idx + 1}</span>
+                          <h3 class="text-base font-bold text-white">${escapeHtml(ex.name)}</h3>
+                          ${getEquipBadge(ex.equip)}
+                          <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-800 text-slate-300 uppercase">${escapeHtml(ex.pattern)}</span>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-1">${escapeHtml(ex.muscles)} · Target: <span class="text-emerald-400 font-semibold">${ex.sets} × ${escapeHtml(ex.targetText)}</span> · Rest ${ex.restSec}s</p>
+                      </div>
+                      <div class="flex items-center gap-1.5 shrink-0">
+                        <button data-toggle-info="${escapeHtml(ex.id)}" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700">
+                          ${infoOpen ? 'Hide Guide' : 'Form Guide'}
+                        </button>
+                        <button data-open-swap="${day.dayIdx}:${ex.slotIdx}:${escapeHtml(ex.id)}" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700 flex items-center gap-1">
+                          <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Swap
+                        </button>
+                      </div>
+                    </div>
+
+                    ${ex.readyToProgress ? `
+                      <div class="mb-3 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/35 flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <span class="text-emerald-300 font-semibold">Ready to progress! You’ve consistently hit the top rep range cleanly.</span>
+                        <button data-apply-progress="${escapeHtml(ex.id)}" class="px-3 py-1 rounded-lg bg-emerald-500 text-slate-950 font-extrabold">Add +2 ${ex.timed ? 'sec' : 'reps'}</button>
+                      </div>
+                    ` : ''}
+
+                    ${infoOpen ? `
+                      <div class="mb-3.5 p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 text-xs space-y-2">
+                        <div><span class="font-bold text-emerald-400">How to perform:</span> <span class="text-slate-300">${escapeHtml(ex.instructions)}</span></div>
+                        <div><span class="font-bold text-amber-400">Common mistakes:</span> <span class="text-slate-300">${escapeHtml(ex.mistakes)}</span></div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                          <div class="p-2 rounded-lg bg-slate-950/60 border border-slate-800"><span class="text-slate-400">Easier:</span> <span class="text-slate-200 font-semibold">${escapeHtml(ex.regression)}</span></div>
+                          <div class="p-2 rounded-lg bg-slate-950/60 border border-slate-800"><span class="text-slate-400">Harder:</span> <span class="text-slate-200 font-semibold">${escapeHtml(ex.progression)}</span></div>
+                        </div>
+                        <div class="text-amber-300/90"><span class="font-bold">Safety:</span> ${escapeHtml(ex.safety)}</div>
+                      </div>
+                    ` : ''}
+
+                    <!-- Set-by-Set Tracker with Editable Reps/Seconds -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+                      ${Array.from({ length: ex.sets }, (_, sIdx) => {
+                        const setNum = sIdx + 1;
+                        const key = `${ex.id}-${setNum}`;
+                        const saved = state.activeWorkoutDraft.sets[key] || { done: false, reps: ex.repMax };
+                        return `
+                          <div class="p-2.5 rounded-xl border flex items-center justify-between gap-2 ${saved.done ? 'bg-emerald-500/15 border-emerald-500' : 'bg-slate-900/80 border-slate-800'}">
+                            <div class="min-w-0">
+                              <div class="text-[10px] font-bold uppercase ${saved.done ? 'text-emerald-400' : 'text-slate-400'}">Set ${setNum}</div>
+                              <div class="flex items-center gap-1 mt-0.5">
+                                <input type="number" min="1" max="300" data-set-reps="${escapeHtml(key)}" value="${saved.reps}" aria-label="Set ${setNum} ${ex.timed ? 'seconds' : 'reps'}" class="w-14 bg-slate-950/80 border border-slate-700 rounded-md px-1.5 py-0.5 text-xs font-bold text-white" />
+                                <span class="text-[11px] text-slate-400">${ex.timed ? 'sec' : 'reps'}</span>
+                              </div>
+                            </div>
+                            <button data-toggle-set="${escapeHtml(key)}" data-rest="${ex.restSec}" data-default-reps="${ex.repMax}" ${state.activeWorkoutDraft.paused ? 'disabled' : ''} class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition ${saved.done ? 'bg-emerald-500 text-slate-950' : 'bg-slate-800 hover:bg-slate-700 text-slate-400'} ${state.activeWorkoutDraft.paused ? 'opacity-40 cursor-not-allowed' : ''}" aria-label="Toggle set ${setNum}">
+                              <i data-lucide="check" class="w-4 h-4 stroke-[3]"></i>
+                            </button>
+                          </div>
+                        `;
+                      }).join('')}
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+
+            <!-- Cooldown Recommendation -->
+            <details class="glass-card rounded-2xl p-4">
+              <summary class="cursor-pointer text-sm font-bold text-white flex items-center justify-between">
+                <span class="flex items-center gap-2"><i data-lucide="wind" class="w-4 h-4 text-sky-400"></i> Recommended 3-Min Cooldown</span>
+                <span class="text-xs text-slate-400">Tap to expand</span>
+              </summary>
+              <ul class="mt-3 space-y-1.5 text-xs text-slate-300 pl-1">
+                ${COOLDOWN_STEPS.map(c => `<li class="flex items-start gap-2"><span class="text-sky-400">•</span><span>${escapeHtml(c)}</span></li>`).join('')}
+              </ul>
+            </details>
+
+            <!-- Finish Session Card -->
+            <div class="glass-card rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4 border-emerald-500/30">
+              <div>
+                <h3 class="text-base font-bold text-white">Ready to finish this workout?</h3>
+                <p class="text-xs text-slate-400">Records your sets, checks progression readiness, and updates your calendar streak.</p>
+              </div>
+              <button id="open-complete-modal-btn" ${stats.completedToday ? 'disabled' : ''} class="w-full sm:w-auto px-6 py-3 rounded-xl font-extrabold text-sm transition flex items-center justify-center gap-2 ${stats.completedToday ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-500/20'}">
+                <i data-lucide="award" class="w-4 h-4"></i>
+                <span>${stats.completedToday ? 'Completed Today' : 'Complete Workout'}</span>
+              </button>
+            </div>
+          </div>
+        `;
+      }
+
+      function renderScheduleView(plan) {
+        const focusOptions = [
+          { k: 'rest', label: 'Rest / Recovery' },
+          { k: 'full_a', label: 'Full Body A' },
+          { k: 'full_b', label: 'Full Body B' },
+          { k: 'full_c', label: 'Full Body C' },
+          { k: 'upper', label: 'Upper Body' },
+          { k: 'lower', label: 'Lower Body' },
+          { k: 'push', label: 'Push' },
+          { k: 'pull', label: 'Pull' },
+          { k: 'legs', label: 'Legs' },
+          { k: 'conditioning', label: 'Core & Conditioning' }
+        ];
+
+        return `
+          <div class="space-y-5 fade-in">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h1 class="text-2xl font-extrabold text-white">Weekly Schedule &amp; Customisation</h1>
+                <p class="text-sm text-slate-400">Reassign training or rest days anytime — your completed workout history stays completely safe.</p>
+              </div>
+              <div class="flex items-center gap-2">
+                <button id="reset-schedule-defaults-btn" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-slate-200">Reset to Split Defaults</button>
+                <button data-action="go-builder" class="px-3.5 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/35 text-xs font-bold text-emerald-300">Plan Builder</button>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              ${plan.map(day => `
+                <div class="glass-card rounded-2xl p-5 flex flex-col justify-between ${day.isRest ? 'opacity-85' : ''}">
+                  <div>
+                    <div class="flex items-center justify-between gap-2 mb-3">
+                      <span class="text-xs font-extrabold uppercase tracking-wider ${day.isRest ? 'text-slate-400' : 'text-emerald-400'}">${escapeHtml(day.dayFull)}</span>
+                      <select data-change-day-focus="${day.dayIdx}" aria-label="Workout focus for ${escapeHtml(day.dayFull)}" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-200">
+                        ${focusOptions.map(o => `<option value="${o.k}" ${day.focus === o.k ? 'selected' : ''}>${o.label}</option>`).join('')}
+                      </select>
+                    </div>
+                    <h3 class="text-base font-bold text-white mb-2.5">${escapeHtml(day.title)}</h3>
+                    ${day.isRest ? `
+                      <ul class="space-y-1.5 text-xs text-slate-400">
+                        ${day.recoveryNotes.map(n => `<li class="flex items-start gap-2"><span class="text-emerald-400">•</span><span>${escapeHtml(n)}</span></li>`).join('')}
+                      </ul>
+                    ` : `
+                      <div class="space-y-1.5">
+                        ${day.exercises.map((ex, i) => `
+                          <div class="flex items-center justify-between gap-2 text-xs py-1.5 border-b border-slate-800/70 last:border-0">
+                            <span class="text-slate-200 font-medium truncate">${i + 1}. ${escapeHtml(ex.name)}</span>
+                            <span class="text-emerald-400 font-bold shrink-0">${ex.sets}×${escapeHtml(ex.targetText)}</span>
+                          </div>
+                        `).join('')}
+                      </div>
+                    `}
+                  </div>
+                  ${!day.isRest ? `
+                    <button data-launch-day="${day.dayIdx}" class="mt-4 w-full py-2.5 rounded-xl bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 text-slate-200 text-xs font-bold transition">
+                      Open ${escapeHtml(day.dayShort)} Workout
+                    </button>
+                  ` : ''}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      function renderNutritionView(nut) {
+        const dateKey = state.selectedFuelDate;
+        const todayKey = getLocalDateKey();
+        const log = getDailyLog(dateKey);
+        const totalKcal = log.meals.reduce((s, m) => s + (Number(m.kcal) || 0), 0);
+        const totalProtein = log.meals.reduce((s, m) => s + (Number(m.protein) || 0), 0);
+        const waterPct = Math.min(100, Math.round((log.waterMl / Math.max(1, nut.hydration.guideMl)) * 100));
+
+        // Recent dates with logs
+        const recentLoggedDates = Object.keys(state.dailyLogs)
+          .filter(k => (state.dailyLogs[k].waterMl > 0 || state.dailyLogs[k].meals.length > 0))
+          .sort()
+          .reverse()
+          .slice(0, 7);
+
+        return `
+          <div class="space-y-5 fade-in">
+            <!-- Date Switcher Header -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h1 class="text-2xl font-extrabold text-white">Daily Fuel &amp; Hydration</h1>
+                <p class="text-sm text-slate-400">Date-keyed tracking — switch dates anytime to view or log past days.</p>
+              </div>
+              <div class="flex items-center gap-1.5 bg-surface p-1 rounded-xl border border-slate-800 self-start">
+                <button id="fuel-prev-day" class="px-2.5 py-1.5 rounded-lg hover:bg-slate-800 text-slate-300 text-xs font-bold">← Prev</button>
+                <span class="px-2.5 text-xs font-extrabold text-white">${escapeHtml(formatFriendlyDate(dateKey))} (${escapeHtml(dateKey)})</span>
+                <button id="fuel-next-day" ${dateKey >= todayKey ? 'disabled' : ''} class="px-2.5 py-1.5 rounded-lg text-xs font-bold ${dateKey >= todayKey ? 'text-slate-600 cursor-not-allowed' : 'hover:bg-slate-800 text-slate-300'}">Next →</button>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              <!-- Hydration Card -->
+              <div class="glass-card rounded-2xl p-6 space-y-4">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <h2 class="text-lg font-bold text-white flex items-center gap-2"><i data-lucide="droplets" class="w-5 h-5 text-sky-400"></i> Hydration Guide</h2>
+                    <p class="text-xs text-slate-400">Suggested range: ~${nut.hydration.lowLiters}–${nut.hydration.highLiters} L/day (adjust to thirst &amp; sweat)</p>
+                  </div>
+                  <span class="text-2xl font-extrabold text-sky-400">${waterPct}%</span>
+                </div>
+
+                <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800">
+                  <div class="flex items-baseline justify-between mb-2">
+                    <span class="text-3xl font-extrabold text-white">${(log.waterMl / 1000).toFixed(2)} L</span>
+                    <span class="text-xs font-semibold text-slate-400">Midpoint guide: ${nut.hydration.guideLiters} L (~${nut.hydration.glasses} cups)</span>
+                  </div>
+                  <div class="w-full h-3 rounded-full bg-slate-800 overflow-hidden">
+                    <div class="h-full bg-gradient-to-r from-sky-500 to-cyan-400 rounded-full transition-all" style="width:${waterPct}%"></div>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-4 gap-2">
+                  <button data-water-date="250" class="py-2.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 text-sky-300 text-xs font-bold">+250 ml</button>
+                  <button data-water-date="500" class="py-2.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 text-sky-300 text-xs font-bold">+500 ml</button>
+                  <button data-water-date="750" class="py-2.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 text-sky-300 text-xs font-bold">+750 ml</button>
+                  <button data-water-date="-250" class="py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold">-250 ml</button>
+                </div>
+
+                <div class="flex items-center justify-between pt-2 border-t border-slate-800 text-xs">
+                  <span class="text-slate-400">Hot weather / heavy sweat day (+350 ml)</span>
+                  <button id="toggle-hot-weather" class="px-3 py-1 rounded-lg font-bold ${state.profile.hotWeather ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-slate-800 text-slate-400 border border-slate-700'}">
+                    ${state.profile.hotWeather ? 'Hot Weather On' : 'Off'}
+                  </button>
+                </div>
+                <p class="text-[11px] text-slate-500">Drink steadily throughout the day and sip around workouts. Avoid forcing excessive water beyond comfort.</p>
+              </div>
+
+              <!-- Age-Aware Nutrition Guidance Card -->
+              ${nut.isYouth ? `
+                <div class="glass-card rounded-2xl p-6 space-y-4 border-emerald-500/30">
+                  <div class="flex items-center gap-2 text-emerald-400 font-bold text-sm">
+                    <i data-lucide="shield-check" class="w-5 h-5"></i> Youth Growth &amp; Performance Nutrition (Under 18)
+                  </div>
+                  <p class="text-xs text-slate-300 leading-relaxed">
+                    Because your profile age is under 18, BareForm 90 intentionally does <strong>not</strong> calculate adult calorie deficits or restrictive macro targets. During growth years, energy needs change rapidly and your body needs consistent fuel for training, school, and recovery.
+                  </p>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                    <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+                      <div class="font-bold text-white mb-1">Balanced Plate Focus</div>
+                      <p class="text-slate-400">Include a quality protein source, whole carbs, colorful fruits/veg, and healthy fats at regular meals.</p>
+                    </div>
+                    <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+                      <div class="font-bold text-white mb-1">Recovery &amp; Consistency</div>
+                      <p class="text-slate-400">Measure progress by strength, energy, skill, and workout consistency — not body weight.</p>
+                    </div>
+                  </div>
+                  <p class="text-[11px] text-slate-400 bg-slate-900/70 p-3 rounded-xl border border-slate-800">
+                    For personalised nutrition advice, always speak with a qualified doctor, paediatrician, or registered dietitian.
+                  </p>
+                </div>
+              ` : `
+                <div class="glass-card rounded-2xl p-6 space-y-4">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <h2 class="text-lg font-bold text-white flex items-center gap-2"><i data-lucide="utensils" class="w-5 h-5 text-emerald-400"></i> ${escapeHtml(nut.calories.goalLabel)}</h2>
+                      <p class="text-xs text-slate-400">Estimate only — not medical or dietetic advice</p>
+                    </div>
+                    <span class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 text-xs font-bold">Adult Estimate</span>
+                  </div>
+
+                  <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800">
+                    <div class="flex items-baseline justify-between mb-1.5">
+                      <span class="text-2xl font-extrabold text-white">${totalKcal.toLocaleString()} kcal logged</span>
+                      <span class="text-xs font-semibold text-emerald-400">Est. ${nut.calories.rangeLow.toLocaleString()}–${nut.calories.rangeHigh.toLocaleString()} kcal</span>
+                    </div>
+                    <div class="text-xs text-slate-400">Protein logged: <span class="text-white font-bold">${totalProtein}g</span> · Suggested range: ${nut.calories.proteinLow}–${nut.calories.proteinHigh}g/day</div>
+                  </div>
+
+                  <p class="text-[11px] text-slate-400 leading-relaxed bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+                    Formulas estimate average energy needs (maintenance ~${nut.calories.tdee.toLocaleString()} kcal) and can vary by ±15% based on metabolism, daily steps, and sleep. Treat these numbers as flexible starting ranges, not rigid prescriptions.
+                  </p>
+                </div>
+              `}
+            </div>
+
+            <!-- Meal Logger (Date-Specific, Safe Escaped Text) -->
+            <div class="glass-card rounded-2xl p-6">
+              <h3 class="text-base font-bold text-white mb-3">Meals Logged for ${escapeHtml(formatFriendlyDate(dateKey))}</h3>
+              <form id="meal-form" class="grid grid-cols-1 sm:grid-cols-4 gap-2.5 mb-4">
+                <input id="meal-name-input" type="text" maxlength="80" placeholder="Meal (e.g., Oats, Eggs &amp; Fruit)" required class="sm:col-span-2 bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500" />
+                ${nut.isYouth ? `
+                  <input id="meal-kcal-input" type="hidden" value="0" />
+                  <input id="meal-protein-input" type="hidden" value="0" />
+                  <button type="submit" class="sm:col-span-2 px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-sm">Log Balanced Meal</button>
+                ` : `
+                  <input id="meal-kcal-input" type="number" min="0" max="4000" placeholder="Calories (optional)" class="bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500" />
+                  <div class="flex gap-2">
+                    <input id="meal-protein-input" type="number" min="0" max="250" placeholder="Protein g" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white placeholder-slate-500" />
+                    <button type="submit" class="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-sm shrink-0">Add</button>
+                  </div>
+                `}
+              </form>
+
+              ${log.meals.length === 0 ? `
+                <p class="text-xs text-slate-500 py-4 text-center border border-dashed border-slate-800 rounded-xl">No meals logged for ${escapeHtml(dateKey)}.</p>
+              ` : `
+                <div class="space-y-2">
+                  ${log.meals.map(m => `
+                    <div class="flex items-center justify-between p-3 rounded-xl bg-slate-900/75 border border-slate-800">
+                      <div>
+                        <div class="text-sm font-semibold text-white">${escapeHtml(m.name)}</div>
+                        ${(!nut.isYouth && (m.kcal > 0 || m.protein > 0)) ? `<div class="text-xs text-slate-400">${m.kcal} kcal · ${m.protein}g protein</div>` : `<div class="text-[11px] text-emerald-400/90">Logged meal</div>`}
+                      </div>
+                      <button data-del-meal="${escapeHtml(m.id)}" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10" aria-label="Delete meal">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                      </button>
+                    </div>
+                  `).join('')}
+                </div>
+              `}
+
+              ${recentLoggedDates.length > 0 ? `
+                <div class="mt-4 pt-4 border-t border-slate-800">
+                  <div class="text-xs font-bold text-slate-400 mb-2">Recent Historical Log Dates</div>
+                  <div class="flex flex-wrap gap-1.5">
+                    ${recentLoggedDates.map(dk => `
+                      <button data-jump-fuel-date="${escapeHtml(dk)}" class="px-2.5 py-1 rounded-lg text-xs font-semibold border ${dk === dateKey ? 'bg-emerald-500/15 border-emerald-500 text-emerald-300' : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-600'}">
+                        ${escapeHtml(formatFriendlyDate(dk))} (${(state.dailyLogs[dk].waterMl / 1000).toFixed(1)}L)
+                      </button>
+                    `).join('')}
+                  </div>
+                </div>
+              ` : ''}
+            </div>
+          </div>
+        `;
+      }
+
+      function renderProgressView(plan, stats) {
+        const phases = [
+          { title: 'Phase 1: Foundation', range: [1, 30], desc: 'Master technique & build consistency' },
+          { title: 'Phase 2: Momentum', range: [31, 60], desc: 'Progressive overload based on readiness' },
+          { title: 'Phase 3: Mastery', range: [61, 90], desc: 'Sustained athletic strength & conditioning' }
+        ];
+
+        // Compute real Personal Records from actual workoutHistory (zero fabricated data)
+        const prMap = {};
+        state.workoutHistory.forEach(h => {
+          (h.exercises || []).forEach(ex => {
+            if (!ex.id || ex.maxReps <= 0) return;
+            if (!prMap[ex.id] || ex.maxReps > prMap[ex.id].maxReps) {
+              prMap[ex.id] = { name: ex.name, maxReps: ex.maxReps, timed: ex.timed, date: h.date };
+            }
+          });
+        });
+        const prList = Object.values(prMap).slice(0, 8);
+
+        return `
+          <div class="space-y-5 fade-in">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h1 class="text-2xl font-extrabold text-white">Progress, History &amp; 90-Day Tracker</h1>
+                <p class="text-sm text-slate-400">Programme days (1–90) and calendar consistency streaks are tracked independently.</p>
+              </div>
+              <button id="open-manual-date-btn" class="self-start sm:self-center px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                <i data-lucide="calendar-plus" class="w-4 h-4 text-emerald-400"></i> Manual Log / Correction
+              </button>
+            </div>
+
+            <!-- 4 KPI Cards -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+              <div class="glass-card rounded-2xl p-4">
+                <div class="text-[11px] font-bold uppercase text-slate-400">Current Streak</div>
+                <div class="text-2xl font-extrabold text-orange-400 mt-1">${stats.currentStreak} <span class="text-xs text-slate-400">days</span></div>
+              </div>
+              <div class="glass-card rounded-2xl p-4">
+                <div class="text-[11px] font-bold uppercase text-slate-400">Longest Streak</div>
+                <div class="text-2xl font-extrabold text-white mt-1">${stats.longestStreak} <span class="text-xs text-slate-400">days</span></div>
+              </div>
+              <div class="glass-card rounded-2xl p-4">
+                <div class="text-[11px] font-bold uppercase text-slate-400">Total Workouts</div>
+                <div class="text-2xl font-extrabold text-emerald-400 mt-1">${stats.totalWorkouts}</div>
+              </div>
+              <div class="glass-card rounded-2xl p-4">
+                <div class="text-[11px] font-bold uppercase text-slate-400">90-Day Programme</div>
+                <div class="text-2xl font-extrabold text-white mt-1">${stats.programmePct}% <span class="text-xs text-slate-400">(${stats.programmeCount}/90)</span></div>
+              </div>
+            </div>
+
+            <!-- Chart + Personal Records -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              <div class="glass-card rounded-2xl p-5">
+                <h2 class="text-base font-bold text-white mb-1">Weekly Workouts (Last 6 Weeks)</h2>
+                <p class="text-xs text-slate-400 mb-3">Actual completed sessions per week vs your ${stats.weeklyTarget}/week target.</p>
+                <div class="relative h-56">
+                  <canvas id="weekly-progress-chart"></canvas>
+                </div>
+              </div>
+
+              <div class="glass-card rounded-2xl p-5">
+                <h2 class="text-base font-bold text-white mb-1">Exercise Personal Records</h2>
+                <p class="text-xs text-slate-400 mb-3">Best single-set performance from your logged sessions.</p>
+                ${prList.length === 0 ? `
+                  <div class="h-44 flex items-center justify-center text-center border border-dashed border-slate-800 rounded-xl p-4">
+                    <p class="text-xs text-slate-500">Complete your first workout in the Workout Player to start tracking real personal records.</p>
+                  </div>
+                ` : `
+                  <div class="space-y-2 max-h-56 overflow-y-auto custom-scroll pr-1">
+                    ${prList.map(pr => `
+                      <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 text-xs">
+                        <div>
+                          <div class="font-bold text-white">${escapeHtml(pr.name)}</div>
+                          <div class="text-[10px] text-slate-500">${escapeHtml(pr.date)}</div>
+                        </div>
+                        <span class="px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-400 font-extrabold">${pr.maxReps} ${pr.timed ? 'sec' : 'reps'}</span>
+                      </div>
+                    `).join('')}
+                  </div>
+                `}
+              </div>
+            </div>
+
+            <!-- 90-Day Programme Grid (Read-Only Earned Progress) -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              ${phases.map(ph => {
+                const days = [];
+                for (let d = ph.range[0]; d <= ph.range[1]; d++) days.push(d);
+                const doneCount = days.filter(d => state.programmeDays.includes(d)).length;
+                return `
+                  <div class="glass-card rounded-2xl p-5">
+                    <div class="flex items-center justify-between mb-1">
+                      <h3 class="text-sm font-bold text-white">${ph.title}</h3>
+                      <span class="text-xs font-bold text-emerald-400">${doneCount}/30</span>
+                    </div>
+                    <p class="text-[11px] text-slate-400 mb-3">${ph.desc}</p>
+                    <div class="grid grid-cols-6 gap-1.5">
+                      ${days.map(d => {
+                        const done = state.programmeDays.includes(d);
+                        const isNext = d === stats.nextProgrammeDay && stats.programmeCount < 90;
+                        return `
+                          <div class="aspect-square rounded-lg text-xs font-bold flex items-center justify-center border select-none ${
+                            done
+                              ? 'bg-emerald-500 border-emerald-400 text-slate-950'
+                              : isNext
+                                ? 'bg-orange-500/15 border-orange-500/60 text-orange-300'
+                                : 'bg-slate-900/80 border-slate-800 text-slate-500'
+                          }" title="${done ? `Programme Day ${d} Completed` : `Programme Day ${d}`}">${d}</div>
+                        `;
+                      }).join('')}
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+
+            <!-- Recent Workout History -->
+            <div class="glass-card rounded-2xl p-5">
+              <h2 class="text-base font-bold text-white mb-3">Completed Workout History</h2>
+              ${state.workoutHistory.length === 0 ? `
+                <p class="text-xs text-slate-500 text-center py-6 border border-dashed border-slate-800 rounded-xl">No workouts completed yet. Finish a session to build your history.</p>
+              ` : `
+                <div class="space-y-2">
+                  ${state.workoutHistory.slice(0, 15).map(h => `
+                    <div class="flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl bg-slate-900/80 border border-slate-800 text-xs">
+                      <div>
+                        <div class="font-bold text-white">${escapeHtml(h.title)} <span class="text-emerald-400 font-semibold">(Day ${h.programmeDay})</span></div>
+                        <div class="text-slate-400 mt-0.5">${escapeHtml(h.date)} · ${h.durationMin} min · Effort: <span class="capitalize">${escapeHtml(h.effort)}</span></div>
+                      </div>
+                      <span class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 font-semibold">${h.exercises.length > 0 ? `${h.exercises.length} moves logged` : 'Manual entry'}</span>
+                    </div>
+                  `).join('')}
+                </div>
+              `}
+            </div>
+          </div>
+        `;
+      }
+
+      function renderBuilderView() {
+        const p = state.profile;
+        const advice = evaluateSplitAdvice(p.sessionsPerWeek, p.format);
+        const recSplit = getRecommendedSplitForFrequency(p.sessionsPerWeek);
+        const nut = calculateNutritionAndHydration(p);
+        const weightDisplay = p.weightUnit === 'lbs' ? Math.round(p.weight * 2.20462) : p.weight;
+
+        return `
+          <div class="space-y-5 fade-in max-w-4xl mx-auto">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <h1 class="text-2xl font-extrabold text-white">Intelligent Plan Builder</h1>
+                <p class="text-sm text-slate-400">Tailors exercises, split recovery, and guidance to your profile &amp; kit — 100% free.</p>
+              </div>
+              <button data-action="go-today" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200">Back</button>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+              <div class="lg:col-span-2 space-y-5">
+                <!-- 1. Profile -->
+                <div class="glass-card rounded-2xl p-5 space-y-4">
+                  <h2 class="text-xs font-extrabold uppercase tracking-wider text-emerald-400">1. Profile &amp; Experience</h2>
+                  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label class="block text-xs font-semibold text-slate-300 mb-1">Gender</label>
+                      <select id="b-gender" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white">
+                        <option value="male" ${p.gender === 'male' ? 'selected' : ''}>Male</option>
+                        <option value="female" ${p.gender === 'female' ? 'selected' : ''}>Female</option>
+                        <option value="other" ${p.gender === 'other' ? 'selected' : ''}>Non-binary / Prefer not to say</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label class="block text-xs font-semibold text-slate-300 mb-1">Age (years)</label>
+                      <input id="b-age" type="number" min="13" max="85" value="${p.age}" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white" />
+                    </div>
+                    <div>
+                      <label class="block text-xs font-semibold text-slate-300 mb-1">Height (cm)</label>
+                      <input id="b-height" type="number" min="130" max="220" value="${p.height}" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white" />
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <div class="flex items-center justify-between mb-1">
+                        <label class="text-xs font-semibold text-slate-300">Weight</label>
+                        <div class="flex rounded-md bg-slate-900 border border-slate-700 overflow-hidden text-[10px] font-bold">
+                          <button type="button" data-unit="kg" class="px-2 py-0.5 ${p.weightUnit === 'kg' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400'}">kg</button>
+                          <button type="button" data-unit="lbs" class="px-2 py-0.5 ${p.weightUnit === 'lbs' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400'}">lbs</button>
+                        </div>
+                      </div>
+                      <input id="b-weight" type="number" min="35" max="400" value="${weightDisplay}" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white" />
+                    </div>
+                    <div>
+                      <label class="block text-xs font-semibold text-slate-300 mb-1">Experience</label>
+                      <select id="b-experience" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white">
+                        <option value="beginner" ${p.experience === 'beginner' ? 'selected' : ''}>Beginner</option>
+                        <option value="intermediate" ${p.experience === 'intermediate' ? 'selected' : ''}>Intermediate</option>
+                        <option value="advanced" ${p.experience === 'advanced' ? 'selected' : ''}>Advanced</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label class="block text-xs font-semibold text-slate-300 mb-1">Training Goal</label>
+                      <select id="b-goal" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white">
+                        <option value="athletic" ${p.goal === 'athletic' ? 'selected' : ''}>Athletic Fitness</option>
+                        <option value="muscle" ${p.goal === 'muscle' ? 'selected' : ''}>Build Strength &amp; Muscle</option>
+                        ${p.age >= 18 ? `<option value="lose" ${p.goal === 'lose' ? 'selected' : ''}>Fat Loss &amp; Conditioning</option>` : ''}
+                      </select>
+                    </div>
+                  </div>
+                  ${p.age < 18 ? `<p class="text-xs text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 p-3 rounded-xl">Under-18 mode active: focuses on strength, athletic skill, balanced nourishment, and healthy recovery without restrictive dieting targets.</p>` : ''}
+                </div>
+
+                <!-- 2. Equipment -->
+                <div class="glass-card rounded-2xl p-5 space-y-3">
+                  <h2 class="text-xs font-extrabold uppercase tracking-wider text-emerald-400">2. Available Equipment</h2>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    ${[
+                      { k: 'bodyweight', t: 'Bodyweight Only', s: 'Zero equipment — safe floor & wall moves' },
+                      { k: 'pullup', t: 'Pull-Up Bar', s: 'Bodyweight + pull-ups & hanging core' },
+                      { k: 'dumbbells', t: 'Dumbbells', s: 'Bodyweight + dumbbell strength moves' },
+                      { k: 'both', t: 'Pull-Up Bar + Dumbbells', s: 'Full minimal-kit exercise library' }
+                    ].map(o => `
+                      <button type="button" data-pick="equipment:${o.k}" class="p-3.5 rounded-xl border text-left transition ${p.equipment === o.k ? 'bg-emerald-500/15 border-emerald-500 text-white' : 'bg-slate-900/75 border-slate-800 text-slate-300 hover:border-slate-600'}">
+                        <div class="text-sm font-bold">${o.t}</div>
+                        <div class="text-[11px] text-slate-400 mt-0.5">${o.s}</div>
+                      </button>
+                    `).join('')}
+                  </div>
+                </div>
+
+                <!-- 3. Frequency, Intensity, Duration, Split -->
+                <div class="glass-card rounded-2xl p-5 space-y-4">
+                  <h2 class="text-xs font-extrabold uppercase tracking-wider text-emerald-400">3. Frequency, Intensity &amp; Split</h2>
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-2">Training Days / Week</label>
+                    <div class="grid grid-cols-5 gap-2">
+                      ${[2, 3, 4, 5, 6].map(n => `
+                        <button type="button" data-pick="sessionsPerWeek:${n}" class="py-2.5 rounded-xl border text-sm font-bold transition ${Number(p.sessionsPerWeek) === n ? 'bg-emerald-500 text-slate-950 border-emerald-400' : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-600'}">${n}d</button>
+                      `).join('')}
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label class="block text-xs font-semibold text-slate-300 mb-2">Intensity</label>
+                      <div class="grid grid-cols-3 gap-1.5">
+                        ${['low', 'moderate', 'high'].map(i => `
+                          <button type="button" data-pick="intensity:${i}" class="py-2 rounded-xl border text-xs font-bold capitalize transition ${p.intensity === i ? 'bg-emerald-500/15 border-emerald-500 text-emerald-300' : 'bg-slate-900 border-slate-800 text-slate-300'}">${i}</button>
+                        `).join('')}
+                      </div>
+                    </div>
+                    <div>
+                      <label class="block text-xs font-semibold text-slate-300 mb-2">Session Duration</label>
+                      <div class="grid grid-cols-4 gap-1.5">
+                        ${[20, 30, 45, 60].map(m => `
+                          <button type="button" data-pick="duration:${m}" class="py-2 rounded-xl border text-xs font-bold transition ${Number(p.duration) === m ? 'bg-emerald-500 text-slate-950 border-emerald-400' : 'bg-slate-900 border-slate-800 text-slate-300'}">${m}m</button>
+                        `).join('')}
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-2">Workout Split Format</label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      ${[
+                        { k: 'full_body', t: 'Full Body', s: 'Best for 2–3 days/week' },
+                        { k: 'upper_lower', t: 'Upper / Lower', s: 'Best for 4 days/week' },
+                        { k: 'hybrid', t: 'Hybrid Athletic', s: 'Best for 5 days/week (Upper/Lower + Conditioning)' },
+                        { k: 'ppl', t: 'Push / Pull / Legs', s: 'Best for 6 days/week (or 3-day rotation)' }
+                      ].map(o => `
+                        <button type="button" data-pick="format:${o.k}" class="p-3 rounded-xl border text-left transition ${p.format === o.k ? 'bg-emerald-500/15 border-emerald-500 text-white' : 'bg-slate-900/75 border-slate-800 text-slate-300 hover:border-slate-600'}">
+                          <div class="flex items-center justify-between gap-1">
+                            <span class="text-sm font-bold">${o.t}</span>
+                            ${recSplit === o.k ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold">Best Match</span>' : ''}
+                          </div>
+                          <div class="text-[11px] text-slate-400 mt-0.5">${o.s}</div>
+                        </button>
+                      `).join('')}
+                    </div>
+                    <div class="mt-3 p-3 rounded-xl text-xs border ${
+                      advice.level === 'warn'
+                        ? 'bg-amber-500/10 border-amber-500/40 text-amber-200'
+                        : advice.level === 'info'
+                          ? 'bg-sky-500/10 border-sky-500/35 text-sky-200'
+                          : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                    }">${escapeHtml(advice.text)}</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Sticky Live Summary -->
+              <div>
+                <div class="glass-card rounded-2xl p-5 sticky top-20 space-y-4 border-emerald-500/30">
+                  <div class="text-xs font-extrabold uppercase tracking-wider text-emerald-400">Live Plan Summary</div>
+                  <div class="space-y-2 text-xs">
+                    <div class="flex justify-between py-1.5 border-b border-slate-800"><span class="text-slate-400">Split</span><span class="font-bold text-white">${escapeHtml(getFormatLabel(p.format))}</span></div>
+                    <div class="flex justify-between py-1.5 border-b border-slate-800"><span class="text-slate-400">Schedule</span><span class="font-bold text-white">${p.sessionsPerWeek}× / wk · ${p.duration} min</span></div>
+                    <div class="flex justify-between py-1.5 border-b border-slate-800"><span class="text-slate-400">Equipment</span><span class="font-bold text-emerald-400">${escapeHtml(getEquipmentLabel(p.equipment))}</span></div>
+                    <div class="flex justify-between py-1.5 border-b border-slate-800"><span class="text-slate-400">Water Guide</span><span class="font-bold text-sky-400">~${nut.hydration.lowLiters}–${nut.hydration.highLiters} L/day</span></div>
+                    <div class="flex justify-between py-1.5">
+                      <span class="text-slate-400">Nutrition</span>
+                      <span class="font-bold text-white">${nut.isYouth ? 'Youth Growth Guide' : `~${nut.calories.rangeLow}–${nut.calories.rangeHigh} kcal`}</span>
+                    </div>
+                  </div>
+                  <button id="generate-plan-btn" class="w-full py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-sm transition shadow-lg shadow-emerald-500/20">
+                    Save &amp; Build My Plan
+                  </button>
+                  <p class="text-[11px] text-slate-500 text-center">Updating your plan preserves all completed workouts &amp; streak history.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      // ============================================================
+      // 11. WEEKLY PROGRESS CHART (Chart.js, Real Data Only)
+      // ============================================================
+      function renderWeeklyChart(plan) {
+        const canvas = document.getElementById('weekly-progress-chart');
+        if (!canvas || typeof Chart !== 'function') return;
+        if (progressChartInstance) {
+          progressChartInstance.destroy();
+          progressChartInstance = null;
+        }
+
+        const todayKey = getLocalDateKey();
+        const todayW = getWeekdayIndexFromDateKey(todayKey);
+        const currentWeekMon = addDaysToDateKey(todayKey, -todayW);
+        const labels = [];
+        const counts = [];
+        const completedKeys = Object.keys(state.completedDates);
+
+        for (let w = 5; w >= 0; w--) {
+          const mon = addDaysToDateKey(currentWeekMon, -w * 7);
+          const sun = addDaysToDateKey(mon, 6);
+          const c = completedKeys.filter(k => k >= mon && k <= sun).length;
+          labels.push(w === 0 ? 'This Wk' : `-${w}w`);
+          counts.push(c);
+        }
+
+        progressChartInstance = new Chart(canvas.getContext('2d'), {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [{
+              label: 'Workouts Completed',
+              data: counts,
+              backgroundColor: 'rgba(34, 197, 94, 0.75)',
+              borderColor: '#22C55E',
+              borderWidth: 1,
+              borderRadius: 6
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              y: {
+                beginAtZero: true,
+                suggestedMax: Math.max(4, plan.filter(d => !d.isRest).length),
+                ticks: { stepSize: 1, color: '#94A3B8', font: { size: 11 } },
+                grid: { color: 'rgba(51,65,85,0.35)' }
+              },
+              x: {
+                ticks: { color: '#94A3B8', font: { size: 11 } },
+                grid: { display: false }
+              }
+            }
+          }
+        });
+      }
+
+      // ============================================================
+      // 12. MASTER RENDER & LISTENER WIRING
+      // ============================================================
+      function render() {
+        const root = document.getElementById('app-root');
+        if (!root) return;
+
+        const plan = buildWeeklyPlan();
+        const nut = calculateNutritionAndHydration(state.profile);
+        const stats = computeProgressAndStreak(plan);
+
+        const headerStreak = document.getElementById('header-streak-count');
+        if (headerStreak) headerStreak.textContent = String(stats.currentStreak);
+
+        document.querySelectorAll('.nav-tab').forEach(b => {
+          const active = b.getAttribute('data-nav') === state.activeTab;
+          b.classList.toggle('nav-btn-active', active);
+          b.classList.toggle('text-slate-300', !active);
+        });
+        document.querySelectorAll('.mobile-nav-tab').forEach(b => {
+          const active = b.getAttribute('data-nav') === state.activeTab;
+          b.classList.toggle('mobile-nav-active', active);
+          b.classList.toggle('text-slate-400', !active);
+        });
+
+        if (state.activeTab === 'today') root.innerHTML = renderTodayView(plan, nut, stats);
+        else if (state.activeTab === 'workout') root.innerHTML = renderWorkoutView(plan, stats);
+        else if (state.activeTab === 'schedule') root.innerHTML = renderScheduleView(plan);
+        else if (state.activeTab === 'nutrition') root.innerHTML = renderNutritionView(nut);
+        else if (state.activeTab === 'progress') root.innerHTML = renderProgressView(plan, stats);
+        else if (state.activeTab === 'builder') root.innerHTML = renderBuilderView();
+
+        if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
+        if (state.activeTab === 'progress') renderWeeklyChart(plan);
+
+        attachViewListeners(plan, stats);
+      }
+
+      function attachViewListeners(plan, stats) {
+        const root = document.getElementById('app-root');
+        if (!root) return;
+
+        root.querySelectorAll('[data-action]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const map = { 'go-workout': 'workout', 'go-builder': 'builder', 'go-schedule': 'schedule', 'go-nutrition': 'nutrition', 'go-progress': 'progress', 'go-today': 'today' };
+            const target = map[btn.getAttribute('data-action')];
+            if (target) {
+              state.activeTab = target;
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+              render();
+            }
+          });
+        });
+
+        root.querySelectorAll('[data-select-day]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            state.selectedScheduleDay = Number(btn.getAttribute('data-select-day'));
+            render();
+          });
+        });
+
+        root.querySelectorAll('[data-launch-day]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            state.selectedScheduleDay = Number(btn.getAttribute('data-launch-day'));
+            state.activeTab = 'workout';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            render();
+          });
+        });
+
+        // Today quick water
+        root.querySelectorAll('[data-water-today]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const delta = Number(btn.getAttribute('data-water-today'));
+            const log = getDailyLog(stats.todayKey);
+            log.waterMl = clampNumber(log.waterMl + delta, 0, 10000, 0);
+            saveState();
+            playBeep(660, 0.1);
+            showToast(`Added ${delta} ml water`);
+            render();
+          });
+        });
+
+        // Workout view controls
+        const daySwitcher = document.getElementById('workout-day-switcher');
+        if (daySwitcher) {
+          daySwitcher.addEventListener('change', (e) => {
+            state.selectedScheduleDay = Number(e.target.value);
+            render();
+          });
+        }
+
+        const pauseBtn = document.getElementById('pause-workout-btn');
+        if (pauseBtn) {
+          pauseBtn.addEventListener('click', () => {
+            state.activeWorkoutDraft.paused = !state.activeWorkoutDraft.paused;
+            showToast(state.activeWorkoutDraft.paused ? 'Workout paused' : 'Workout resumed');
+            render();
+          });
+        }
+
+        root.querySelectorAll('[data-toggle-info]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const id = btn.getAttribute('data-toggle-info');
+            state.expandedExInfo[id] = !state.expandedExInfo[id];
+            render();
+          });
+        });
+
+        root.querySelectorAll('[data-open-swap]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const [dIdx, sIdx, exId] = btn.getAttribute('data-open-swap').split(':');
+            const ex = EXERCISE_MAP[exId];
+            if (ex) openSwapModal(Number(dIdx), Number(sIdx), ex);
+          });
+        });
+
+        root.querySelectorAll('[data-apply-progress]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const exId = btn.getAttribute('data-apply-progress');
+            const cur = state.progressionState[exId] || { goodCount: 0, repBonus: 0, readyToProgress: false };
+            cur.repBonus = Math.min(10, (cur.repBonus || 0) + 2);
+            cur.goodCount = 0;
+            cur.readyToProgress = false;
+            state.progressionState[exId] = cur;
+            saveState();
+            showToast('Target progressed by +2!');
+            render();
+          });
+        });
+
+        root.querySelectorAll('[data-set-reps]').forEach(inp => {
+          inp.addEventListener('change', (e) => {
+            const key = inp.getAttribute('data-set-reps');
+            const val = clampNumber(e.target.value, 1, 300, 10);
+            const existing = state.activeWorkoutDraft.sets[key] || { done: false, reps: val };
+            existing.reps = val;
+            state.activeWorkoutDraft.sets[key] = existing;
+          });
+        });
+
+        root.querySelectorAll('[data-toggle-set]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            if (state.activeWorkoutDraft.paused) return;
+            const key = btn.getAttribute('data-toggle-set');
+            const rest = Number(btn.getAttribute('data-rest')) || 60;
+            const defReps = Number(btn.getAttribute('data-default-reps')) || 10;
+            const cur = state.activeWorkoutDraft.sets[key] || { done: false, reps: defReps };
+            cur.done = !cur.done;
+            state.activeWorkoutDraft.sets[key] = cur;
+            if (cur.done) {
+              playBeep(784, 0.12);
+              startRestTimer(rest);
+            }
+            render();
+          });
+        });
+
+        const tToggle = document.getElementById('timer-toggle-btn');
+        if (tToggle) {
+          tToggle.addEventListener('click', () => {
+            if (restTimer.running) { stopRestTimer(); updateTimerUI(); }
+            else startRestTimer(restTimer.seconds || 60);
+          });
+        }
+        const tMinus = document.getElementById('timer-minus-btn');
+        if (tMinus) tMinus.addEventListener('click', () => { restTimer.seconds = Math.max(10, restTimer.seconds - 15); updateTimerUI(); });
+        const tPlus = document.getElementById('timer-plus-btn');
+        if (tPlus) tPlus.addEventListener('click', () => { restTimer.seconds = Math.min(300, restTimer.seconds + 15); updateTimerUI(); });
+        const tReset = document.getElementById('timer-reset-btn');
+        if (tReset) tReset.addEventListener('click', () => { stopRestTimer(); restTimer.seconds = restTimer.defaultSeconds || 60; updateTimerUI(); });
+        const sndBtn = document.getElementById('sound-toggle-btn');
+        if (sndBtn) sndBtn.addEventListener('click', () => { state.soundEnabled = !state.soundEnabled; saveState(); render(); });
+
+        const completeModalBtn = document.getElementById('open-complete-modal-btn');
+        if (completeModalBtn) {
+          completeModalBtn.addEventListener('click', () => {
+            const activeDay = plan[state.selectedScheduleDay];
+            if (activeDay && !activeDay.isRest) openCompleteWorkoutModal(activeDay);
+          });
+        }
+
+        // Schedule customization
+        root.querySelectorAll('[data-change-day-focus]').forEach(sel => {
+          sel.addEventListener('change', (e) => {
+            const idx = Number(sel.getAttribute('data-change-day-focus'));
+            state.customSchedule[idx] = { dayIdx: idx, focus: e.target.value };
+            state.profile.sessionsPerWeek = Math.max(2, Math.min(6, state.customSchedule.filter(s => s.focus !== 'rest').length || 2));
+            saveState();
+            showToast(`${DAY_FULL[idx]} updated!`);
+            render();
+          });
+        });
+
+        const resetSchedBtn = document.getElementById('reset-schedule-defaults-btn');
+        if (resetSchedBtn) {
+          resetSchedBtn.addEventListener('click', () => {
+            state.customSchedule = generateDefaultScheduleSlots(state.profile.sessionsPerWeek, state.profile.format);
+            saveState();
+            showToast('Schedule reset to split defaults.');
+            render();
+          });
+        }
+
+        // Fuel & Water view
+        const prevFuel = document.getElementById('fuel-prev-day');
+        if (prevFuel) prevFuel.addEventListener('click', () => { state.selectedFuelDate = addDaysToDateKey(state.selectedFuelDate, -1); render(); });
+        const nextFuel = document.getElementById('fuel-next-day');
+        if (nextFuel) nextFuel.addEventListener('click', () => {
+          const nxt = addDaysToDateKey(state.selectedFuelDate, 1);
+          if (nxt <= getLocalDateKey()) { state.selectedFuelDate = nxt; render(); }
+        });
+
+        root.querySelectorAll('[data-water-date]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const delta = Number(btn.getAttribute('data-water-date'));
+            const log = getDailyLog(state.selectedFuelDate);
+            log.waterMl = clampNumber(log.waterMl + delta, 0, 10000, 0);
+            saveState();
+            playBeep(delta > 0 ? 660 : 440, 0.1);
+            render();
+          });
+        });
+
+        const hotBtn = document.getElementById('toggle-hot-weather');
+        if (hotBtn) {
+          hotBtn.addEventListener('click', () => {
+            state.profile.hotWeather = !state.profile.hotWeather;
+            saveState();
+            render();
+          });
+        }
+
+        const mealForm = document.getElementById('meal-form');
+        if (mealForm) {
+          mealForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const name = document.getElementById('meal-name-input').value.trim().slice(0, 80);
+            const kcal = clampNumber(document.getElementById('meal-kcal-input').value, 0, 4000, 0);
+            const protein = clampNumber(document.getElementById('meal-protein-input').value, 0, 250, 0);
+            if (!name) return;
+            const log = getDailyLog(state.selectedFuelDate);
+            log.meals.unshift({ id: String(Date.now()), name, kcal, protein });
+            saveState();
+            showToast(`Logged ${name}`);
+            render();
+          });
+        }
+
+        root.querySelectorAll('[data-del-meal]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const id = btn.getAttribute('data-del-meal');
+            const log = getDailyLog(state.selectedFuelDate);
+            log.meals = log.meals.filter(m => m.id !== id);
+            saveState();
+            render();
+          });
+        });
+
+        root.querySelectorAll('[data-jump-fuel-date]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            state.selectedFuelDate = btn.getAttribute('data-jump-fuel-date');
+            render();
+          });
+        });
+
+        // Progress view
+        const manualBtn = document.getElementById('open-manual-date-btn');
+        if (manualBtn) manualBtn.addEventListener('click', openManualDateModal);
+
+        // Plan Builder inputs
+        const bindSelect = (id, key) => {
+          const el = document.getElementById(id);
+          if (el) el.addEventListener('change', (e) => { state.profile[key] = e.target.value; render(); });
+        };
+        bindSelect('b-gender', 'gender');
+        bindSelect('b-experience', 'experience');
+        bindSelect('b-goal', 'goal');
+
+        const bAge = document.getElementById('b-age');
+        if (bAge) {
+          bAge.addEventListener('change', (e) => {
+            state.profile.age = clampNumber(e.target.value, 13, 85, 22);
+            if (state.profile.age < 18 && state.profile.goal === 'lose') state.profile.goal = 'athletic';
+            render();
+          });
+        }
+        const bHeight = document.getElementById('b-height');
+        if (bHeight) bHeight.addEventListener('change', (e) => { state.profile.height = clampNumber(e.target.value, 130, 220, 174); render(); });
+        const bWeight = document.getElementById('b-weight');
+        if (bWeight) {
+          bWeight.addEventListener('change', (e) => {
+            const raw = Number(e.target.value) || 68;
+            state.profile.weight = state.profile.weightUnit === 'lbs'
+              ? clampNumber(Math.round(raw / 2.20462), 35, 200, 68)
+              : clampNumber(raw, 35, 200, 68);
+            render();
+          });
+        }
+        root.querySelectorAll('[data-unit]').forEach(btn => {
+          btn.addEventListener('click', () => { state.profile.weightUnit = btn.getAttribute('data-unit'); render(); });
+        });
+        root.querySelectorAll('[data-pick]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const [key, val] = btn.getAttribute('data-pick').split(':');
+            state.profile[key] = (key === 'sessionsPerWeek' || key === 'duration') ? Number(val) : val;
+            if (key === 'sessionsPerWeek') {
+              state.profile.format = getRecommendedSplitForFrequency(state.profile.sessionsPerWeek);
+            }
+            if (key === 'equipment') state.swappedExercises = {};
+            render();
+          });
+        });
+
+        const genBtn = document.getElementById('generate-plan-btn');
+        if (genBtn) {
+          genBtn.addEventListener('click', () => {
+            state.profile.planBuilt = true;
+            state.customSchedule = generateDefaultScheduleSlots(state.profile.sessionsPerWeek, state.profile.format);
+            saveState();
+            celebrate();
+            showToast('Custom 90-day plan built! History preserved.');
+            state.activeTab = 'today';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            render();
+          });
+        }
+      }
+
+      // ============================================================
+      // 13. BOOT & TEST HOOK
+      // ============================================================
+      function init() {
+        loadState();
+        state.selectedScheduleDay = getWeekdayIndexFromDateKey(getLocalDateKey());
+        state.selectedFuelDate = getLocalDateKey();
+
+        document.querySelectorAll('[data-nav]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            state.activeTab = btn.getAttribute('data-nav');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            render();
+          });
+        });
+
+        const builderBtn = document.getElementById('open-builder-btn');
+        if (builderBtn) builderBtn.addEventListener('click', () => { state.activeTab = 'builder'; window.scrollTo({ top: 0, behavior: 'smooth' }); render(); });
+
+        const settingsBtn = document.getElementById('open-settings-btn');
+        if (settingsBtn) settingsBtn.addEventListener('click', openSettingsModal);
+
+        const backdrop = document.getElementById('modal-backdrop');
+        if (backdrop) {
+          backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeModal(); });
+        }
+
+        render();
+      }
+
+      // Expose read/test interface for automated verification
+      window.__BAREFORM_V2__ = {
+        getState: () => state,
+        EXERCISES,
+        escapeHtml,
+        getLocalDateKey,
+        addDaysToDateKey,
+        buildWeeklyPlan,
+        generateDefaultScheduleSlots,
+        evaluateSplitAdvice,
+        calculateNutritionAndHydration,
+        computeProgressAndStreak,
+        migrateV1ToV2,
+        validateBackupPayload,
+        completeWorkoutSession,
+        getDailyLog
+      };
+
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+      else init();
+    })();
+  </script>
+
+  <!-- Progressive Web App Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js')
+          .catch((err) => console.warn('Service Worker registration failed:', err));
+      });
+    }
+  </script>
+</body>
+</html>
